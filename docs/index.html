@@ -4,6 +4,47 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Cube Wars</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="main.js" defer></script>
   </head>
-  <body></body>
+  <body>
+    <div id="preload" class="modal">
+      <div id="preload-header">
+        <div id="logo">
+          <img src="assets/logo.png" alt="Cube Wars Logo" />
+        </div>
+        <div class="devmode">INDEV 25.18.01</div>
+      </div>
+
+      <div id="login-box" class="box">
+        <p>Welcome to Cube Wars!</p>
+        <p>Logged in as:</p>
+        <h1>eddyzow</h1>
+        <div class="button-container">
+          <div class="button" id="start-btn">LET'S GO!</div>
+          <div class="button" id="switch-user-btn">NOT YOU?</div>
+        </div>
+      </div>
+
+      <div id="preload-footer"></div>
+    </div>
+
+    <div id="game-container" style="display: none">
+      <p style="text-align: center; color: white">
+        Main game screen coming soon...
+      </p>
+    </div>
+
+    <div
+      class="tooltip"
+      title="Changelog (INDEV 25.18.01):&#10;- First version of Cube Wars! &#10;- Created pre-load modal and preparations for implementation of Pixi.JS"
+    >
+      Cube Wars INDEV 25.18.01 (May 2, 2025)
+    </div>
+  </body>
 </html>
