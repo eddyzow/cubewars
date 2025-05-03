@@ -14,25 +14,39 @@
   </head>
   <body>
     <div id="preload" class="modal">
-      <div id="preload-header">
+      <div id="preload-header-bar"></div>
+
+      <!-- NEW unified center container -->
+      <div id="preload-center-container">
         <div id="logo">
           <img src="assets/logo.png" alt="Cube Wars Logo" />
+          <div class="devmode">INDEV 25.18.02</div>
         </div>
-        <div class="devmode">INDEV 25.18.01</div>
+        <div id="login-box" class="box">
+          <p>Welcome to Cube Wars!</p>
+          <p>Logged in as:</p>
+          <h1>eddyzow</h1>
+          <div class="button-container">
+            <div class="button" id="start-btn">LET'S GO!</div>
+            <div class="button" id="switch-user-btn">NOT YOU?</div>
+          </div>
+        </div>
       </div>
 
-      <div id="login-box" class="box">
-        <p>Welcome to Cube Wars!</p>
-        <p>Logged in as:</p>
-        <h1>eddyzow</h1>
-        <div class="button-container">
-          <div class="button" id="start-btn">LET'S GO!</div>
-          <div class="button" id="switch-user-btn">NOT YOU?</div>
-        </div>
+      <div id="preload-footer">
+        <a href="https://eddyzow.net" target="_blank" title="Website">
+          <img src="assets/icon-website.svg" alt="Website" />
+        </a>
+        <a href="https://youtube.com/@eddyzow" target="_blank" title="YouTube">
+          <img src="assets/icon-youtube.svg" alt="YouTube" />
+        </a>
+        <a href="" target="_blank" title="Game Info">
+          <img src="assets/icon-info.svg" alt="Info" />
+        </a>
+        <a href="" target="_blank" title="Support Me">
+          <img src="assets/icon-support.svg" alt="Support" />
+        </a>
       </div>
-
-      <div id="preload-footer"></div>
-    </div>
 
     <div id="game-container" style="display: none">
       <p style="text-align: center; color: white">
@@ -42,9 +56,9 @@
 
     <div
       class="tooltip"
-      title="Changelog (INDEV 25.18.01):&#10;- First version of Cube Wars! &#10;- Created pre-load modal and preparations for implementation of Pixi.JS"
+      title="Changelog (INDEV 25.18.02):&#10;- First version of Cube Wars! &#10;- Created pre-load modal and preparations for implementation of Pixi.JS"
     >
-      Cube Wars INDEV 25.18.01 (May 2, 2025)
+      Cube Wars INDEV 25.18.02 (May 3, 2025)
     </div>
   </body>
 </html>
