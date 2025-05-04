@@ -399,3 +399,50 @@ hr {
     text-shadow: 0 0 15px rgba(255, 0, 0, 1);
   }
 }
+
+#mobile-warning {
+  display: none;
+  position: fixed;
+  z-index: 9999;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: black;
+  color: white;
+  font-family: "IBM Plex Sans", sans-serif;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+a {
+  color: white;
+}
+
+#mobile-warning-box {
+  max-width: 400px;
+  width: 100%;
+}
+
+#mobile-warning-box h1 {
+  font-size: 2em;
+  margin-bottom: 0.5em;
+  color: red;
+}
+
+/* Show only if screen is <= 768px wide */
+@media (max-width: 600px) {
+  #mobile-warning {
+    display: flex;
+  }
+
+  #preload,
+  #game-container,
+  #dev-footer {
+    display: none !important;
+  }
+}
