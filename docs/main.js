@@ -39,7 +39,7 @@ function showBox(name) {
   $("#" + name).css("transform", "scale(1)");
 }
 
-const socket = io("cubewars.herokuapp.com"); // auto-connects to server
+const socket = io("https://cubewars-826c3a3278db.herokuapp.com");
 const indicator = document.getElementById("connection-indicator");
 const pingDisplay = document.getElementById("ping-display");
 
