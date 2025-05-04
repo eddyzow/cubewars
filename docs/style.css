@@ -51,14 +51,49 @@ body {
 }
 
 #logo {
-  transition: all 0.5s ease;
+  position: relative;
+  transition: all 1s ease;
+  bottom: 220px;
   opacity: 0;
   text-align: center;
 }
 
 #logo img {
-  width: 340px;
-  margin-bottom: 10px;
+  width: 300px;
+}
+
+@media (max-height: 1200px) {
+  #logo {
+    bottom: 180px;
+  }
+  #logo img {
+    width: 240px;
+  }
+}
+
+@media (max-height: 800px) {
+  #logo {
+    bottom: 150px;
+  }
+  #logo img {
+    width: 180px;
+  }
+}
+
+#form-wrapper .box {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  transform: translateY(-50%) scale(0.9);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  opacity: 0;
+}
+
+#form-wrapper .box.active {
+  display: block;
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
 }
 
 .devmode {
@@ -83,31 +118,83 @@ mo {
   top: 0;
   width: 100%;
   height: 60px;
-  background-image: repeating-linear-gradient(
-    45deg,
-    #333,
-    #333 10px,
-    #222 10px,
-    #222 20px
-  );
-  border-bottom: 2px solid #111;
+  background-color: #111;
+  border-bottom: 2px solid #222;
   z-index: 2;
 }
 
+#register-box {
+  position: absolute;
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(0);
+}
+
 #login-box p {
+  font-family: "IBM Plex Sans Condensed";
+}
+
+#register-step2-box p {
+  margin-bottom: 15px;
+  font-family: "IBM Plex Sans Condensed";
+}
+
+#login-box {
+  visibility: hidden;
+  position: absolute;
+  opacity: 0;
+  transform: scale(0);
+}
+
+#register-step2-box {
+  visibility: hidden;
+  position: absolute;
+  opacity: 0;
+  transform: scale(0);
+}
+
+.box p {
   font-weight: 400;
   margin: 0;
-  margin-bottom: 5px;
   font-size: 1.5em;
 }
 
-#login-box cs {
+#login-box p {
+  margin-bottom: 5px;
+}
+
+#login-box h3 {
+  margin-bottom: 5px;
+}
+
+#register-box h3 {
+  text-align: justify;
+  margin-top: 10px;
+  margin-bottom: 15px;
+}
+
+.box h3 {
+  margin: 0;
+  font-size: 1.2em;
+  font-weight: 500;
+  color: rgb(151, 151, 151);
+  font-family: "IBM Plex Sans Condensed";
+}
+
+.box h2 {
+  text-align: justify;
+  font-size: 1.178em;
+  font-family: "IBM Plex Sans Condensed";
+  margin-bottom: 15px;
+}
+
+.box cs {
   margin: 0;
   margin-bottom: 5px;
   font-size: 1em;
 }
 
-#login-box h1 {
+.box h1 {
   margin: 0;
   font-size: 2em;
 }
@@ -129,15 +216,35 @@ mo {
   padding: 20px;
   border-radius: 4px;
   box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
-  width: 500px;
-  opacity: 0;
-  transition: all 0.5s cubic-bezier(0, 1, 0.5, 1);
-  transform: scale(0);
+  width: 600px;
+  transition: all 0.5s cubic-bezier(0.2, 0.8, 0.5, 1);
+}
+
+.box.active {
+  display: block; /* or flex, if needed */
+}
+
+.box.visible {
+  opacity: 1;
+  transform: scale(1);
 }
 
 .box h1 {
   font-size: 24px;
   color: #00ffff;
+}
+
+#continue-btn {
+  background-color: rgb(3, 76, 212);
+}
+
+hr {
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+#register-btn {
+  background-color: rgb(3, 76, 212);
 }
 
 #start-btn {
@@ -198,11 +305,11 @@ mo {
   background-color: #555555;
   color: rgb(233, 233, 233);
   font-size: 1.5em;
-  font-family: "IBM Plex Mono";
+  font-family: "IBM Plex Sans Condensed";
   border-radius: 6px;
   cursor: pointer;
   user-select: none;
-  transition: all 0.5s ease;
+  transition: all 0.2s ease;
   transform: scale(1);
 }
 
@@ -211,9 +318,18 @@ mo {
   flex-grow: 8; /* double the width of the NOT YOU button */
 }
 
-button:hover {
-  transform: scale(0.9);
-  background-color: #666;
+#register-btn {
+  flex-grow: 2; /* double the width of the NOT YOU button */
+}
+
+.button:hover {
+  transform: scale(0.98);
+  filter: brightness(0.8);
+}
+
+.button:active {
+  transform: scale(0.95);
+  filter: brightness(0.6);
 }
 
 .tooltip {
@@ -227,4 +343,59 @@ button:hover {
   border-radius: 4px;
   cursor: help;
   border: 1px solid #333;
+}
+
+.input-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.input-container input {
+  padding: 10px;
+  font-size: 1.2em;
+  border: 2px solid rgb(138, 138, 138);
+  border-radius: 6px;
+  background-color: #1a1a1a;
+  color: white;
+  font-family: "IBM Plex Mono";
+}
+
+.input-container input::placeholder {
+  color: #888;
+}
+
+#dev-warning {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  z-index: 1000;
+  padding: 8px 16px;
+  pointer-events: none;
+}
+
+.dev-label {
+  font-weight: bold;
+  font-size: 14px;
+  color: red;
+  text-shadow: 0 0 10px rgba(255, 0, 0, 0.7);
+  animation: pulse-glow 1.5s infinite alternate;
+  letter-spacing: 1px;
+}
+
+.dev-note {
+  font-size: 12px;
+  color: #ccc;
+  margin-top: 2px;
+}
+
+@keyframes pulse-glow {
+  from {
+    text-shadow: 0 0 5px rgba(255, 0, 0, 0.5);
+  }
+  to {
+    text-shadow: 0 0 15px rgba(255, 0, 0, 1);
+  }
 }

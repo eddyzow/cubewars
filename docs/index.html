@@ -9,7 +9,9 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="style.css" />
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.core.min.js"></script>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="main.js" defer></script>
   </head>
   <body>
@@ -20,15 +22,56 @@
       <div id="preload-center-container">
         <div id="logo">
           <img src="assets/logo.png" alt="Cube Wars Logo" />
-          <div class="devmode">INDEV 25.18.02</div>
+          <div class="devmode">INDEV 25.18.03</div>
         </div>
+
         <div id="login-box" class="box">
-          <p>Welcome to Cube Wars!</p>
-          <p>Logged in as:</p>
-          <h1>eddyzow</h1>
+          <p>WELCOME BACK TO CUBE WARS!</p>
+          <h3>LOGGED IN AS:</h3>
+          <h1>EDDYZOW</h1>
+          <hr />
+
           <div class="button-container">
             <div class="button" id="start-btn">LET'S GO!</div>
             <div class="button" id="switch-user-btn">NOT YOU?</div>
+          </div>
+        </div>
+
+        <div id="register-box" class="box">
+          <p>Welcome to Cube Wars!</p>
+          <h3>
+            AN OPEN-SOURCE, CLOUD-BASED MULTIPLAYER GAME INSPIRED BY A FAMILIAR
+            STACKER. CLEAR LINES IN TWO DIMENSIONS, ATTACK YOUR OPPONENTS, USE
+            EPIC POWERUPS, AND RISE IN THE RANKING LADDER!
+          </h3>
+          <hr />
+          <h2>
+            ENTER A USERNAME TO REGISTER, OR LEAVE BLANK TO PLAY AS A GUEST
+          </h2>
+          <div class="input-container">
+            <input
+              type="text"
+              id="username-input"
+              placeholder="Username (3–20 chars)"
+            />
+            <div class="button" id="continue-btn">CONTINUE</div>
+          </div>
+        </div>
+
+        <div id="register-step2-box" class="box">
+          <p>AND SO IT BEGINS...</p>
+          <hr />
+          <h2>ENTER A PASSWORD FOR YOUR NEW ACCOUNT. KEEP IT SAFE!</h2>
+          <div class="input-container">
+            <input
+              type="password"
+              id="password-input"
+              placeholder="Password (6–20 chars)"
+            />
+            <div class="button-container">
+              <div class="button" id="back-reg1">BACK</div>
+              <div class="button" id="register-btn">REGISTER</div>
+            </div>
           </div>
         </div>
       </div>
@@ -43,22 +86,32 @@
         <a href="" target="_blank" title="Game Info">
           <img src="assets/icon-info.svg" alt="Info" />
         </a>
+        <a
+          href="https://github.com/eddyzow/cubewars"
+          target="_blank"
+          title="GitHub Repo"
+        >
+          <img src="assets/icon-github.svg" alt="GitHub Repo" />
+        </a>
         <a href="" target="_blank" title="Support Me">
           <img src="assets/icon-support.svg" alt="Support" />
         </a>
       </div>
-
+    </div>
     <div id="game-container" style="display: none">
       <p style="text-align: center; color: white">
         Main game screen coming soon...
       </p>
     </div>
-
+    <div id="dev-warning">
+      <div class="dev-label">DEVELOPMENT BUILD</div>
+      <div class="dev-note">If you are not the developer, do not interact.</div>
+    </div>
     <div
       class="tooltip"
-      title="Changelog (INDEV 25.18.02):&#10;- First version of Cube Wars! &#10;- Created pre-load modal and preparations for implementation of Pixi.JS"
+      title="Changelog (INDEV 25.18.01):&#10;- First version of Cube Wars! &#10;- Created pre-load modal and preparations for implementation of Pixi.JS"
     >
-      Cube Wars INDEV 25.18.02 (May 3, 2025)
+      Cube Wars INDEV 25.18.03 (May 3, 2025)
     </div>
   </body>
 </html>
