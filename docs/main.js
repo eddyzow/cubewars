@@ -38,3 +38,35 @@ function showBox(name) {
   $("#" + name).css("visibility", "visible");
   $("#" + name).css("transform", "scale(1)");
 }
+
+const socket = io("cubewars.herokuapp.com"); // auto-connects to server
+const indicator = document.getElementById("connection-indicator");
+const pingDisplay = document.getElementById("ping-display");
+
+socket.on("connect", () => {
+  indicator.classList.remove("pulsing-yellow");
+  indicator.style.backgroundColor = "limegreen";
+  indicator.style.boxShadow = "0 0 8px limegreen";
+  pingDisplay.textContent = "—";
+  ping();
+});
+
+socket.on("disconnect", () => {
+  indicator.classList.add("pulsing-yellow");
+  pingDisplay.textContent = "Reconnecting...";
+  location.reload(); // IMPORTANT TODO: remove this for production
+});
+
+setInterval(() => {
+  if (socket.connected) {
+    ping();
+  }
+}, 2000);
+
+function ping() {
+  const start = Date.now();
+  socket.emit("ping-check", () => {
+    const latency = Date.now() - start;
+    pingDisplay.textContent = `Connected to us-east-1. Ping: ${latency}ms`;
+  });
+}
