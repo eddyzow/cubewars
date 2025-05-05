@@ -19,6 +19,21 @@
       <div id="connection-indicator" title="Server connection status"></div>
       <span id="ping-display">Connecting...</span>
     </div>
+
+    <div id="cube-modal">
+      <div id="cube-3d-wrapper">
+        <div class="cube-3d">
+          <div class="face front"></div>
+          <div class="face back"></div>
+          <div class="face left"></div>
+          <div class="face right"></div>
+          <div class="face top"></div>
+          <div class="face bottom"></div>
+        </div>
+        <p class="loading-text">LOADING...</p>
+      </div>
+    </div>
+
     <div id="preload" class="modal">
       <div id="preload-header-bar"></div>
 
@@ -57,8 +72,36 @@
               type="text"
               id="username-input"
               placeholder="Username (3–20 chars)"
+              minlength="3"
+              maxlength="20"
+              pattern="[a-z0-9_]{3,20}"
+              title="3–20 chars, lowercase letters, numbers, and underscores only"
             />
+
+            <div id="reg1-notice"></div>
             <div class="button" id="continue-btn">CONTINUE</div>
+          </div>
+        </div>
+
+        <div id="register-step3-box" class="box">
+          <p>LOG IN</p>
+          <hr />
+          <h2>
+            LOOKS LIKE YOU HAVE AN ACCOUNT. ENTER YOUR PASSWORD TO LOG IN!
+          </h2>
+          <div class="input-container">
+            <input
+              type="password"
+              id="login-password-input"
+              placeholder="Password (6–20 chars)"
+            />
+
+            <div id="reg3-notice"></div>
+
+            <div class="button-container">
+              <div class="button" id="back-login">BACK</div>
+              <div class="button" id="login1-btn">LOG IN</div>
+            </div>
           </div>
         </div>
 
@@ -71,7 +114,14 @@
               type="password"
               id="password-input"
               placeholder="Password (6–20 chars)"
+              minlength="6"
+              maxlength="20"
+              pattern="\\S{6,20}"
+              title="6–20 chars, no spaces"
             />
+
+            <div id="reg2-notice"></div>
+
             <div class="button-container">
               <div class="button" id="back-reg1">BACK</div>
               <div class="button" id="register-btn">REGISTER</div>
