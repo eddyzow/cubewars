@@ -198,7 +198,9 @@ $(document).ready(function () {
   // Handle socket disconnection
   socket.on("disconnect", () => {
     updateConnectionIndicator(false);
-    location.reload(); // Consider removing for production
+    if (build == "dev") {
+      location.reload(); // Consider removing for production
+    }
   });
 
   // Periodically ping the server
