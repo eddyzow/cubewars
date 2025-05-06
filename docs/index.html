@@ -9,9 +9,11 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="style.css" />
+    <script src="https://pixijs.download/release/pixi.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.core.min.js"></script>
     <script src="https://cdn.socket.io/4.8.1/socket.io.js"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="../assets/particles.min.js"></script>
     <script src="main.js" defer></script>
   </head>
   <body>
@@ -35,13 +37,14 @@
     </div>
 
     <div id="preload" class="modal">
+      <div id="particles-js"></div>
       <div id="preload-header-bar"></div>
 
       <!-- NEW unified center container -->
       <div id="preload-center-container">
         <div id="logo">
           <img src="assets/logo.png" alt="Cube Wars Logo" />
-          <div class="devmode">INDEV 25.18.05</div>
+          <div class="devmode">INDEV 25.19.01</div>
         </div>
 
         <div id="login-box" class="box">
@@ -172,9 +175,9 @@
     </div>
     <div
       class="tooltip"
-      title="Changelog (INDEV 25.18.01):&#10;- First version of Cube Wars! &#10;- Created pre-load modal and preparations for implementation of Pixi.JS"
+      title="Changelog (INDEV 25.19.01):&#10;- Signup flow complete. Particle engine implementation complete."
     >
-      Cube Wars INDEV 25.18.05 (May 4, 2025)
+      Cube Wars INDEV 25.19.01 (May 5, 2025)
     </div>
   </body>
 </html>

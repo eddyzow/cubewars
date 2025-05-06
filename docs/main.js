@@ -7,6 +7,13 @@ const build = "prod"; // Change to "prod" for production
 const socket =
   build === "dev" ? io() : io("https://cubewars-826c3a3278db.herokuapp.com");
 
+if (build === "prod") {
+  $("#dev-warning").remove();
+}
+
+let app;
+let preloadLayer, gameLayer;
+
 // DOM elements
 const indicator = document.getElementById("connection-indicator");
 const pingDisplay = document.getElementById("ping-display");
@@ -51,9 +58,9 @@ function showBox(name) {
 }
 
 function hidePreload() {
-  $("#preload").css({
-    opacity: "0",
-    visibility: "hidden",
+  $("#preload").fadeOut(400);
+  $("#particles-js").fadeOut(400, function () {
+    $(this).remove();
   });
   hideBox("login-box");
   hideBox("register-box");
@@ -175,13 +182,77 @@ function registerUser(username, password, email) {
   });
 }
 
+particlesJS.load("particles-js", "assets/particles.json", function () {
+  console.log("✅ particles.js config loaded");
+});
+
+async function initializePixi() {
+  app = new PIXI.Application();
+  await app.init({
+    background: "#0e0e0e",
+    resizeTo: window,
+  });
+
+  app.canvas.style.position = "absolute";
+  app.canvas.style.top = "0";
+  app.canvas.style.left = "0";
+  app.canvas.style.zIndex = "0";
+  document.body.appendChild(app.canvas);
+
+  // Create 6 cube faces
+  const faces = [];
+  const colors = [0xff5555, 0x55ff55, 0x5555ff, 0xffff55, 0xff55ff, 0x55ffff];
+  for (let i = 0; i < 6; i++) {
+    const face = new PIXI.Graphics();
+    face.beginFill(colors[i]);
+    face.drawRect(-50, -50, 100, 100);
+    face.endFill();
+    face.x = window.innerWidth / 2;
+    face.y = window.innerHeight / 2;
+    app.stage.addChild(face);
+    faces.push(face);
+  }
+
+  // Simple "orbit" illusion for cube
+  let angle = 0;
+  app.ticker.add(() => {
+    angle += 0.01;
+
+    for (let i = 0; i < faces.length; i++) {
+      const a = angle + (i * Math.PI) / 3;
+      faces[i].x = window.innerWidth / 2 + Math.cos(a) * 100;
+      faces[i].y = window.innerHeight / 2 + Math.sin(a) * 60;
+      faces[i].alpha = 0.5 + 0.5 * Math.sin(a); // subtle depth feel
+    }
+  });
+
+  // Add text
+  const style = new PIXI.TextStyle({
+    fill: "#ffffff",
+    fontFamily: "IBM Plex Mono",
+    fontSize: 20,
+    fontWeight: "bold",
+    align: "center",
+  });
+
+  const text = new PIXI.Text(
+    "Welcome to Cube Wars\nThis is a Pixi.js test.",
+    style
+  );
+  text.anchor.set(0.5);
+  text.x = window.innerWidth / 2;
+  text.y = window.innerHeight / 2 + 150;
+  app.stage.addChild(text);
+}
+
 // Document ready
 $(document).ready(function () {
   // Handle socket connection
-  socket.on("connect", () => {
+
+  socket.on("connect", async () => {
     updateConnectionIndicator(true);
     ping();
-    hideLoad();
+
     document.documentElement.scrollTop = 0;
     $("#logo").css("opacity", "1");
 
@@ -192,6 +263,15 @@ $(document).ready(function () {
       $("#login-box h1").text(userData.username.toUpperCase());
     } else {
       showBox("register-box");
+    }
+
+    try {
+      await initializePixi(); // Wait for Pixi to be ready
+      hideLoad(); // Only hide loading modal after Pixi is ready
+      console.log("✅ Pixi initialized and loading modal hidden.");
+    } catch (err) {
+      console.error("❌ Pixi initialization failed:", err);
+      $("#load-warning").text("Failed to load graphics engine.");
     }
   });
 
@@ -320,3 +400,61 @@ $(document).ready(function () {
   // Show loading modal on page load
   showLoad();
 });
+
+function createPreloadParticles(container) {
+  const particles = [];
+
+  for (let i = 0; i < 50; i++) {
+    const p = createParticle();
+    p.x = Math.random() * window.innerWidth;
+    p.y = Math.random() * window.innerHeight;
+    container.addChild(p);
+    particles.push(p);
+  }
+
+  app.ticker.add(() => {
+    particles.forEach((p) => {
+      p.y -= p.speed;
+      p.alpha -= 0.005;
+      if (p.alpha <= 0) {
+        p.x = Math.random() * window.innerWidth;
+        p.y = window.innerHeight + Math.random() * 100;
+        p.alpha = 1;
+      }
+    });
+  });
+}
+
+function createGameParticles(container) {
+  const particles = [];
+
+  for (let i = 0; i < 30; i++) {
+    const p = createParticle(0x00ffcc); // Different color for game
+    p.x = Math.random() * window.innerWidth;
+    p.y = Math.random() * window.innerHeight;
+    container.addChild(p);
+    particles.push(p);
+  }
+
+  app.ticker.add(() => {
+    particles.forEach((p) => {
+      p.x += Math.sin(p.rotation) * 0.5;
+      p.y -= p.speed;
+      p.alpha -= 0.004;
+      if (p.alpha <= 0) {
+        p.x = Math.random() * window.innerWidth;
+        p.y = window.innerHeight + Math.random() * 100;
+        p.alpha = 1;
+      }
+    });
+  });
+}
+
+function createParticle(color = 0xffffff) {
+  const g = new PIXI.Graphics();
+  g.beginFill(color);
+  g.drawCircle(0, 0, Math.random() * 2 + 2);
+  g.endFill();
+  g.speed = Math.random() * 1 + 0.5;
+  return g;
+}

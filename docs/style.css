@@ -74,10 +74,10 @@ body {
   justify-content: center;
   align-items: center;
   gap: 40px;
-  position: relative;
-  transition: all 0.5s ease;
+  position: fixed;
   opacity: 1;
   background: #030303;
+  z-index: 10;
 }
 
 #preload-center-container {
@@ -121,6 +121,16 @@ body {
   }
 }
 
+#particles-js {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  top: 0;
+  left: 0;
+  background-color: #0e0e0e;
+}
+
 #form-wrapper .box {
   position: absolute;
   top: 50%;
@@ -138,7 +148,7 @@ body {
 }
 
 .devmode {
-  color: rgb(53, 53, 53);
+  color: rgb(104, 104, 104);
   font-size: 2em;
   margin-bottom: 15px;
   font-weight: 800;
