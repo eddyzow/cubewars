@@ -171,7 +171,7 @@ mo {
   height: 100px;
   background-color: #111;
   border-bottom: 3px solid #ffffff;
-  z-index: 2;
+  z-index: 10;
   font-family: "IBM Plex Sans";
   font-weight: 800;
   font-size: 2em;
@@ -188,11 +188,12 @@ mo {
   position: fixed;
   bottom: 0;
   left: 0;
+  white-space: nowrap;
   width: 100%;
   height: 80px;
   background-color: #111;
   border-top: 3px solid #3b3b3b;
-  z-index: 2;
+  z-index: 10;
   font-family: "IBM Plex Mono";
   font-weight: 400;
   font-size: 2em;
@@ -586,7 +587,7 @@ a {
     display: flex;
   }
 }
-#game-container {
+#home-container {
   height: 100%;
   width: 100%;
   visibility: hidden;
@@ -731,39 +732,186 @@ a {
   }
 }
 
+.back-button {
+  position: absolute;
+  top: 200px;
+  left: -270px;
+  height: 10px;
+  padding: 28px;
+  padding-right: 0;
+  padding-left: 110px;
+  font-weight: 800;
+  font-size: 2em;
+  width: calc(112px);
+  white-space: nowrap;
+  line-height: 0.2em;
+  border-radius: 2px;
+  background-color: rgb(49, 49, 49);
+  border: 4px outset rgb(49, 49, 49);
+  transition: all 0.2s cubic-bezier(0.15, 0.25, 0.4, 1);
+}
+
+.back-button:hover {
+  filter: brightness(1.5);
+  left: -50px !important;
+  cursor: pointer;
+}
+
+.back-button:active {
+  left: -30px !important;
+}
+
+/* Prevent hover styles from interfering */
+.back-button.no-hover:hover,
+.back-button.no-hover:active {
+  left: -270px !important;
+  transform: none;
+}
+
 .tab-button {
   position: relative;
   right: -200px;
-  height: 100px;
-  padding: 20px;
+  height: 80px;
+  padding: 24px;
   width: calc(85vw);
+  white-space: nowrap;
   border-radius: 2px;
   transition: all 0.15s cubic-bezier(0.15, 0.25, 0.4, 1);
 }
 
-.tab-button:nth-child(3n + 1) {
-  background-color: rgb(121, 21, 8);
-  border: 4px outset rgb(121, 21, 8);
+#play-btn {
+  background-color: rgb(197, 102, 13);
+  border: 4px outset rgb(197, 102, 13);
 }
 
-.tab-button:nth-child(3n + 2) {
+#settings-btn {
   background-color: rgb(31, 58, 145);
   border: 4px outset rgb(31, 58, 145);
 }
-.tab-button:nth-child(3n + 3) {
+#about-btn {
   background-color: rgb(66, 54, 134);
   border: 4px outset rgb(66, 54, 134);
+}
+#zen-btn {
+  background: linear-gradient(90deg, rgb(16, 119, 16), rgb(18, 125, 139));
+  box-shadow: 0 0 10px rgb(4, 196, 36);
+}
+
+#custom-btn {
+  background-color: rgb(66, 57, 99);
+  border: 4px outset rgb(66, 57, 99);
+}
+#public-btn {
+  background-color: rgb(33, 48, 131);
+  border: 4px outset rgb(33, 48, 131);
+}
+
+.player-count p {
+  font-family: "IBM Plex Sans Condensed" !important;
+}
+
+#fire-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.player-count {
+  display: inline-block;
+  background: rgba(0, 0, 0, 0.5);
+  position: relative;
+  bottom: 10px;
+  border-radius: 8px;
+  margin-left: 32px;
+  padding: 20px;
+}
+
+.player-count h1 {
+  font-size: 2em !important;
+}
+
+.player-count p {
+  font-size: 1em !important;
+}
+
+#ranked-btn .text-section {
+  display: inline-block;
+  flex: 0 1 auto; /* don't grow, allow shrinking */
+  bottom: 8px;
+  position: relative;
+  max-width: 70%; /* optional cap */
+}
+
+#ranked-btn {
+  background: repeating-linear-gradient(
+    -45deg,
+    /* angle for diagonal lines */ #00000010,
+    /* start color */ #00000010 10px,
+    /* end color of the line */ #ffffff10 10px,
+    /* start of the next stripe */ #ffffff10 20px /* end color of the gap */
+  );
+  background-color: #8b0000; /* deep royal red */
+  border: 4px outset #8b0000;
+  position: relative;
+  color: white;
+  font-weight: 800;
+  z-index: 1;
+}
+
+#ranked-btn h1 {
+  color: goldenrod;
+  text-shadow: none;
+  text-shadow: 0 0 4px goldenrod;
+}
+
+#ranked-btn::before {
+  content: "";
+  position: absolute;
+  top: -20%;
+  left: -20%;
+  width: 140%;
+  height: 140%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 69, 0, 0.4) 0%,
+    transparent 90%
+  );
+  animation: flame-flicker 2s ease infinite;
+  z-index: -1;
+  pointer-events: none;
+  filter: blur(12px);
+}
+
+@keyframes flame-flicker {
+  0% {
+    transform: scale(1) translate(0px, 0px);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.05) translate(1px, -1px);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) translate(-1px, 1px);
+    opacity: 0.9;
+  }
 }
 
 .tab-button h1 {
   margin: 0;
   font-family: "IBM Plex Sans";
-  font-size: 48px;
+  font-size: 38px;
+  text-shadow: 2px 2px 4px black;
 }
 
 .tab-button p {
   margin: 0;
-  font-size: 24px;
+  text-shadow: 2px 2px 2ch black;
+  font-size: 22px;
   font-family: "IBM Plex Mono";
 }
 
@@ -782,25 +930,49 @@ a {
 }
 
 .tab-button:hover {
-  filter: brightness(1.5);
-  right: -100px;
-  transform: translateX(4px);
+  filter: brightness(1.3);
+  right: -100px !important;
   cursor: pointer;
+}
+.scroll-spacer {
+  height: 80px; /* or however much bottom space you want */
+  flex-shrink: 0;
 }
 
 .tab-button:active {
-  right: 0px;
+  right: 0px !important;
 }
 
 .tabpage {
-  margin-top: 100px;
-  position: fixed;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-top: 100px;
+  position: absolute;
   height: calc(100vh - 280px);
   right: -85vw;
   top: 100px; /* below header */
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 45px;
   z-index: 5;
-  transition: all 0.6s cubic-bezier(0.01, 1, 0.8, 1.01);
+  transition: all 0.6s cubic-bezier(0.15, 0.65, 0.4, 1);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background: #888;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }

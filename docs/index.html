@@ -10,6 +10,7 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/tsparticles@2/tsparticles.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/6.5.10/browser/pixi.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.core.min.js"></script>
     <script src="https://cdn.socket.io/4.8.1/socket.io.js"></script>
@@ -45,7 +46,7 @@
       <div id="preload-center-container">
         <div id="logo">
           <img src="assets/logo.png" alt="Cube Wars Logo" />
-          <div class="devmode">INDEV 25.19.02</div>
+          <div class="devmode">INDEV 25.19.03</div>
         </div>
 
         <div id="login-box" class="box">
@@ -157,24 +158,60 @@
       </div>
     </div>
     
-    <div id="game-container">
+    <div id="home-container">
       <div id="wallpaper"></div>
       <div id="main-header">HOME</div>
+      <div class="back-button" id="back-btn">
+
+        BACK
+      </div>
+
       <div id="tabpage-1" class="tabpage">
-        <div class="tab-button">
+        <div class="tab-button" id="play-btn">
           <h1>PLAY</h1>
           <p>LIVE 1v1 MATCHES AGAINST OPPONENTS</p>
         </div>
-        <div class="tab-button">
+        <div class="tab-button" id="settings-btn">
           <h1>SETTINGS</h1>
           <p>CONFIGURE YOUR SETTINGS FOR THE BEST CUBE WARS EXPERIENCE</p>
         </div>
 
-        <div class="tab-button">
+        <div class="tab-button" id="about-btn">
           <h1>ABOUT</h1>
           <p>SEE CREDITS AND INFO ABOUT CUBE WARS</p>
         </div>
+        <div class="scroll-spacer"></div>
       </div>
+
+      <div id="tabpage-2" class="tabpage">
+        <div class="tab-button" id="ranked-btn">
+          <div id="fire-canvas"></div>
+        
+          <div class="text-section">
+            <h1>THE TESSERACT</h1>
+            <p>1v1 RANKED DUELS. RISE UP THE LADDER AND TAKE ON THE TESSERACT!</p>
+          </div>
+          <div class="player-count">
+            <h1>0</h1>
+            <p>PLAYING NOW</p>
+          </div>
+        </div>
+        <div class="tab-button" id="zen-btn">
+          <h1>ZEN</h1>
+          <p>A SINGLE-PLAYER PRACTICE EXPERIENCE</p>
+        </div>
+        <div class="tab-button" id="custom-btn">
+          <h1>CUSTOM GAME</h1>
+          <p>CREATE A CUSTOM ROOM AND PLAY WITH YOUR FRIENDS!</p>
+        </div>
+        <div class="tab-button" id="public-btn">
+          <h1>PUBLIC ROOMS</h1>
+          <p>JOIN PUBLIC GAMES</p>
+        </div>
+        <div class="scroll-spacer"></div>
+      </div>
+
+
       <div id="main-footer">
         <div>CHOOSE A GAME MODE!</div>
         <div id="icons-footer">
@@ -218,9 +255,9 @@
     </div>
     <div
       class="tooltip" id="changelog"
-      title="Changelog (INDEV 25.19.02):&#10;- Game navigation work. Note: game will likely be made in raw HTML/JS/CSS instead of pixi -- need more experience!!"
+      title="Changelog (INDEV 25.19.03):&#10;- Game navigation work. Note: game will likely be made in raw HTML/JS/CSS instead of pixi -- need more experience!!"
     >
-      Cube Wars INDEV 25.19.02 (May 7, 2025)
+      Cube Wars INDEV 25.19.03 (May 7, 2025)
     </div>
   </body>
 </html>

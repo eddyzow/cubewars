@@ -13,6 +13,7 @@ if (build === "prod") {
   $("#dev-warning").remove();
 }
 
+let pg = 0;
 let app;
 let preloadLayer, gameLayer;
 
@@ -77,6 +78,49 @@ function hideBox(name) {
     transform: "scale(0)",
   });
 }
+
+tsParticles.load("fire-canvas", {
+  fullScreen: { enable: false },
+  particles: {
+    number: { value: 0 },
+    color: { value: ["#ff9900", "#ff3300", "#ffaa00"] },
+    shape: { type: "circle" },
+    opacity: {
+      value: 1,
+      animation: { enable: true, speed: 1, minimumValue: 0, sync: false },
+    },
+    size: {
+      value: { min: 2, max: 5 },
+      animation: { enable: true, speed: 10, minimumValue: 1, sync: false },
+    },
+    life: {
+      duration: {
+        sync: false,
+        value: 1,
+      },
+      count: 0,
+    },
+    move: {
+      enable: true,
+      gravity: { enable: true, acceleration: -10 },
+      speed: { min: 5, max: 10 },
+      direction: "top",
+      outModes: { default: "destroy" },
+    },
+  },
+  emitters: {
+    direction: "top",
+    position: { x: 50, y: 100 },
+    rate: {
+      delay: 0.1,
+      quantity: 5,
+    },
+    size: {
+      width: 100,
+      height: 10,
+    },
+  },
+});
 
 // Function to generate a random salt
 function generateSalt(length = 16) {
@@ -161,8 +205,7 @@ function loginUser(username, password) {
     console.log(response);
     if (response.success) {
       storeUserData(response.token, username);
-      hidePreload();
-      showBox("game-container");
+      openGame();
     } else {
       $("#reg3-notice").text(response.error);
     }
@@ -176,12 +219,25 @@ function registerUser(username, password, email) {
     hideLoad();
     if (response.success) {
       storeUserData(response.token, username);
-      hidePreload();
-      showBox("game-container");
+      openGame();
     } else {
       $("#reg2-notice").text(response.error);
     }
   });
+}
+
+function openGame(data) {
+  $("#tabpage-1").show();
+  document.getElementById("wallpaper").style["background-image"] =
+    'url("assets/art/wallpapers/' +
+    (Math.floor(Math.random() * 8) + 1).toString() +
+    '.jpg")';
+  hidePreload();
+  showBox("home-container");
+  pg = 1;
+  $("#changelog").remove();
+  $("#main-tabs").addClass("show");
+  $("#tabpage-1").css("right", "0vw");
 }
 
 particlesJS.load("particles-js", "assets/particles.json", function () {
@@ -229,21 +285,32 @@ $(document).ready(function () {
   $("#start-btn").on("click", function () {
     const userData = getUserData();
     if (userData) {
-      document.getElementById("wallpaper").style["background-image"] =
-        'url("assets/art/wallpapers/' +
-        (Math.floor(Math.random() * 8) + 1).toString() +
-        '.jpg")';
       isValidToken(userData.token);
-      hidePreload();
-      showBox("game-container");
-      $("#changelog").remove();
-      $("#main-tabs").addClass("show");
-      $("#tabpage-1").css("right", "0vw");
+      openGame();
     } else {
       alert("User session is invalid. Please register or log in again.");
       clearUserData();
+      location.reload();
       hideBox("login-box");
       showBox("register-box");
+    }
+  });
+
+  $("#play-btn").on("click", function () {
+    $("#back-btn").removeClass("no-hover");
+    $("#back-btn").css("left", "-70px");
+    $("#tabpage-1").css("right", "-85vw");
+    $("#tabpage-2").css("right", "-0vw");
+
+    pg = 2;
+  });
+
+  $("#back-btn").on("click", function () {
+    if (pg === 2) {
+      $("#back-btn").addClass("no-hover").css("left", "-270px");
+      $("#tabpage-2").css("right", "-85vw");
+      $("#tabpage-1").css("right", "0vw");
+      pg = 1;
     }
   });
 
@@ -254,8 +321,28 @@ $(document).ready(function () {
     showBox("register-box");
   });
 
+  document
+    .getElementById("username-input")
+    .addEventListener("input", function (e) {
+      var start = this.selectionStart;
+      var end = this.selectionEnd;
+
+      // Convert text to lowercase
+      this.value = this.value.toLowerCase();
+
+      // Restore the selection range
+      this.setSelectionRange(start, end);
+    });
+
   socket.on("tokenReturn", (data) => {
     console.log(data);
+    if (data == "invalid") {
+      alert("User session is invalid. Please register or log in again.");
+      clearUserData();
+      location.reload();
+      hideBox("login-box");
+      showBox("register-box");
+    }
   });
 
   // Handle "CONTINUE" button click in registration
