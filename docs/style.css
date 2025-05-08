@@ -164,14 +164,44 @@ mo {
   font-family: "IBM Plex Mono";
 }
 
-#preload-header-bar {
-  position: absolute;
+#main-header {
+  position: fixed;
   top: 0;
   width: 100%;
-  height: 60px;
+  height: 100px;
   background-color: #111;
-  border-bottom: 2px solid #222;
+  border-bottom: 3px solid #ffffff;
   z-index: 2;
+  font-family: "IBM Plex Sans";
+  font-weight: 800;
+  font-size: 2em;
+  color: #b6b6b6;
+
+  display: flex;
+  align-items: flex-end; /* ✅ aligns text to bottom */
+  padding-left: 24px;
+  padding-bottom: 18px; /* ✅ push slightly above the bottom */
+  box-sizing: border-box;
+}
+
+#main-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 80px;
+  background-color: #111;
+  border-top: 3px solid #3b3b3b;
+  z-index: 2;
+  font-family: "IBM Plex Mono";
+  font-weight: 400;
+  font-size: 2em;
+  color: #b6b6b6;
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* ✅ Left + right sides */
+  padding: 0 24px;
+  box-sizing: border-box;
 }
 
 #register-step3-box {
@@ -359,6 +389,46 @@ hr {
 #preload-footer a:hover {
   color: #aaa; /* darkens the icon on hover */
 }
+
+#icons-footer img {
+  position: relative;
+  top: 2px;
+  width: 32px;
+  height: 32px;
+  padding-left: 16px;
+  padding-right: 16px;
+  filter: brightness(100%);
+  transform: scale(1.1);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+#icons-footer img:hover {
+  filter: brightness(200%);
+  transform: scale(1);
+}
+
+#icons-footer img:active {
+  filter: brightness(200%);
+  transform: scale(0.9);
+}
+
+#icons-footer a {
+  color: white;
+  text-decoration: none;
+  transition: color 0.5s ease;
+  color: white; /* sets color context for SVGs with currentColor */
+}
+
+#icons-footer a:hover {
+  color: #aaa; /* darkens the icon on hover */
+}
+
+#icons-footer {
+  display: flex;
+  gap: 12px;
+}
+
 .button {
   font-weight: 600;
   flex-grow: 1;
@@ -409,6 +479,7 @@ hr {
   border-radius: 4px;
   cursor: help;
   border: 1px solid #333;
+  z-index: 100;
 }
 
 .input-container {
@@ -514,12 +585,12 @@ a {
   #mobile-warning {
     display: flex;
   }
-
-  #preload,
-  #game-container,
-  #dev-footer {
-    display: none !important;
-  }
+}
+#game-container {
+  height: 100%;
+  width: 100%;
+  visibility: hidden;
+  opacity: 0;
 }
 
 #cube-modal {
@@ -658,4 +729,78 @@ a {
     transform: translateY(-20px);
     opacity: 0;
   }
+}
+
+.tab-button {
+  position: relative;
+  right: -200px;
+  height: 100px;
+  padding: 20px;
+  width: calc(85vw);
+  border-radius: 2px;
+  transition: all 0.15s cubic-bezier(0.15, 0.25, 0.4, 1);
+}
+
+.tab-button:nth-child(3n + 1) {
+  background-color: rgb(121, 21, 8);
+  border: 4px outset rgb(121, 21, 8);
+}
+
+.tab-button:nth-child(3n + 2) {
+  background-color: rgb(31, 58, 145);
+  border: 4px outset rgb(31, 58, 145);
+}
+.tab-button:nth-child(3n + 3) {
+  background-color: rgb(66, 54, 134);
+  border: 4px outset rgb(66, 54, 134);
+}
+
+.tab-button h1 {
+  margin: 0;
+  font-family: "IBM Plex Sans";
+  font-size: 48px;
+}
+
+.tab-button p {
+  margin: 0;
+  font-size: 24px;
+  font-family: "IBM Plex Mono";
+}
+
+#wallpaper {
+  z-index: -10;
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  margin: auto;
+  background-position: center;
+  background-size: cover;
+  right: 0;
+  top: 0;
+  transition: all 0.5s ease;
+  filter: brightness(0.1);
+}
+
+.tab-button:hover {
+  filter: brightness(1.5);
+  right: -100px;
+  transform: translateX(4px);
+  cursor: pointer;
+}
+
+.tab-button:active {
+  right: 0px;
+}
+
+.tabpage {
+  margin-top: 100px;
+  position: fixed;
+  height: calc(100vh - 280px);
+  right: -85vw;
+  top: 100px; /* below header */
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  z-index: 5;
+  transition: all 0.6s cubic-bezier(0.01, 1, 0.8, 1.01);
 }
