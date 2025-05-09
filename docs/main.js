@@ -195,7 +195,7 @@ function openGame(data) {
   hidePreload();
   showBox("home-container");
   pg = 1;
-  $("#main-header").text("HOME");
+  $("#main-header-text").text("HOME");
   $("#main-footer").text("CUBE WARS HOME");
   $("#changelog").remove();
   $("#main-tabs").addClass("show");
@@ -267,7 +267,7 @@ $(document).ready(function () {
     $("#tabpage-1").removeClass("visible");
     $("#tabpage-2").addClass("visible");
     pg = 2;
-    $("#main-header").text("PLAY");
+    $("#main-header-text").text("PLAY");
     $("#main-footer").text("SELECT A GAME MODE!");
   });
 
@@ -279,7 +279,7 @@ $(document).ready(function () {
     $("#tabpage-1").removeClass("visible");
     $("#tabpage-7").addClass("visible");
     pg = 7;
-    $("#main-header").text("SETTINGS");
+    $("#main-header-text").text("SETTINGS");
     $("#main-footer").text("TWEAK YOUR EXPERIENCE");
   });
 
@@ -292,7 +292,7 @@ $(document).ready(function () {
     $("#tabpage-8").addClass("visible");
     pg = 8;
     $("#tabpage-8").scrollTop(0);
-    $("#main-header").text("ABOUT");
+    $("#main-header-text").text("ABOUT");
     $("#main-footer").text("ABOUT CUBE WARS");
   });
 
@@ -304,7 +304,7 @@ $(document).ready(function () {
       $("#tabpage-2").removeClass("visible");
       $("#tabpage-1").addClass("visible");
       pg = 1;
-      $("#main-header").text("HOME");
+      $("#main-header-text").text("HOME");
       $("#main-footer").text("CUBE WARS HOME");
     }
     if (pg === 7) {
@@ -314,7 +314,7 @@ $(document).ready(function () {
       $("#tabpage-7").removeClass("visible");
       $("#tabpage-1").addClass("visible");
       pg = 1;
-      $("#main-header").text("HOME");
+      $("#main-header-text").text("HOME");
       $("#main-footer").text("CUBE WARS HOME");
     }
     if (pg === 8) {
@@ -324,7 +324,7 @@ $(document).ready(function () {
       $("#tabpage-8").removeClass("visible");
       $("#tabpage-1").addClass("visible");
       pg = 1;
-      $("#main-header").text("HOME");
+      $("#main-header-text").text("HOME");
       $("#main-footer").text("CUBE WARS HOME");
     }
   });

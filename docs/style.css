@@ -31,7 +31,6 @@ body {
   transition: background-color 0.3s, box-shadow 0.3s;
 }
 
-/* Pulsing yellow when disconnected */
 .pulsing-yellow {
   background-color: gold !important;
   box-shadow: 0 0 0 0 gold;
@@ -178,11 +177,78 @@ mo {
   color: #b6b6b6;
 
   display: flex;
-  align-items: flex-end; /* ✅ aligns text to bottom */
+  align-items: flex-end; 
   padding-left: 24px;
-  padding-bottom: 18px; /* ✅ push slightly above the bottom */
+  padding-bottom: 18px; 
   box-sizing: border-box;
 }
+
+#main-header {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  height: 100px;
+  background-color: #111;
+  border-bottom: 3px solid #ffffff;
+  z-index: 10;
+  font-family: "IBM Plex Sans";
+  font-size: 2em;
+  color: #b6b6b6;
+
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between; 
+  padding: 0 24px 18px 24px;
+  box-sizing: border-box;
+}
+
+.header-title {
+  font-weight: 800;
+}
+
+#level-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 0.6em;
+  text-align: right;
+  color: white;
+}
+
+.level-name {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.level-bar {
+  background: #333;
+  border-radius: 4px;
+  width: 120px;
+  height: 24px;
+  position: relative;
+  overflow: hidden;
+  border: 2px solid #888;
+}
+
+.level-fill {
+  background: linear-gradient(to right, #ff6600, #ffa500);
+  width: 70%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: left;
+  padding-left: 6px;
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px;
+  position: relative;
+}
+
+.level-value {
+  font-weight: 800;
+  color: white;
+  z-index: 1;
+}
+
 
 #main-footer {
   position: fixed;
@@ -200,7 +266,7 @@ mo {
   color: #b6b6b6;
   display: flex;
   align-items: center;
-  justify-content: space-between; /* ✅ Left + right sides */
+  justify-content: space-between; 
   padding: 0 24px;
   box-sizing: border-box;
 }
@@ -310,7 +376,7 @@ mo {
 }
 
 .box.active {
-  display: block; /* or flex, if needed */
+  display: block; 
 }
 
 .box.visible {
@@ -357,7 +423,7 @@ hr {
   display: flex;
   align-items: center;
   z-index: 10;
-  color: white; /* ✅ This is the key line */
+  color: white; 
 }
 
 #preload-footer img {
@@ -384,11 +450,11 @@ hr {
   color: white;
   text-decoration: none;
   transition: color 0.2s ease;
-  color: white; /* sets color context for SVGs with currentColor */
+  color: white; 
 }
 
 #preload-footer a:hover {
-  color: #aaa; /* darkens the icon on hover */
+  color: #aaa; 
 }
 
 #icons-footer img {
@@ -418,11 +484,11 @@ hr {
   color: white;
   text-decoration: none;
   transition: color 0.5s ease;
-  color: white; /* sets color context for SVGs with currentColor */
+  color: white;
 }
 
 #icons-footer a:hover {
-  color: #aaa; /* darkens the icon on hover */
+  color: #aaa; /
 }
 
 #icons-footer {
@@ -446,17 +512,16 @@ hr {
   transform: scale(1);
 }
 
-/* make LET'S GO stretch more */
 #start-btn {
-  flex-grow: 8; /* double the width of the NOT YOU button */
+  flex-grow: 8; 
 }
 
 #login1-btn {
-  flex-grow: 4; /* double the width of the NOT YOU button */
+  flex-grow: 4; 
 }
 
 #register-btn {
-  flex-grow: 2; /* double the width of the NOT YOU button */
+  flex-grow: 2; 
 }
 
 .button:hover {
@@ -581,7 +646,6 @@ a {
   color: red;
 }
 
-/* Show only if screen is <= 768px wide */
 @media (max-width: 600px) {
   #mobile-warning {
     display: flex;
@@ -762,7 +826,6 @@ a {
   left: -30px !important;
 }
 
-/* Prevent hover styles from interfering */
 .back-button.no-hover:hover,
 .back-button.no-hover:active {
   left: -270px !important;
@@ -842,10 +905,10 @@ a {
 
 #ranked-btn .text-section {
   display: inline-block;
-  flex: 0 1 auto; /* don't grow, allow shrinking */
+  flex: 0 1 auto; 
   bottom: 8px;
   position: relative;
-  max-width: 70%; /* optional cap */
+  max-width: 70%;
 }
 
 #ranked-btn {
@@ -854,9 +917,9 @@ a {
     /* angle for diagonal lines */ #00000010,
     /* start color */ #00000010 10px,
     /* end color of the line */ #ffffff10 10px,
-    /* start of the next stripe */ #ffffff10 20px /* end color of the gap */
+    /* start of the next stripe */ #ffffff10 20px 
   );
-  background-color: #8b0000; /* deep royal red */
+  background-color: #9e1212; 
   border: 4px outset #8b0000;
   position: relative;
   color: white;
@@ -937,7 +1000,7 @@ a {
   cursor: pointer;
 }
 .scroll-spacer {
-  height: 80px; /* or however much bottom space you want */
+  height: 80px;
   flex-shrink: 0;
 }
 
@@ -1075,7 +1138,7 @@ a {
   position: fixed;
   height: calc(100vh - 280px);
   right: -85vw;
-  top: 100px; /* below header */
+  top: 100px; 
   flex-direction: column;
   gap: 45px;
   z-index: 5;
@@ -1100,3 +1163,5 @@ a {
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
+
+
