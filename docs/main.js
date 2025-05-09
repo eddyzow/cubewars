@@ -190,7 +190,7 @@ function openGame(data) {
   $("#tabpage-1").show();
   document.getElementById("wallpaper").style["background-image"] =
     'url("assets/art/wallpapers/' +
-    (Math.floor(Math.random() * 8) + 1).toString() +
+    (Math.floor(Math.random() * 15) + 1).toString() +
     '.jpg")';
   hidePreload();
   showBox("home-container");
