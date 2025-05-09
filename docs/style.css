@@ -737,6 +737,7 @@ a {
   top: 200px;
   left: -270px;
   height: 10px;
+  z-index: 100;
   padding: 28px;
   padding-right: 0;
   padding-left: 110px;
@@ -780,8 +781,9 @@ a {
 }
 
 #play-btn {
-  background-color: rgb(197, 102, 13);
+  background: linear-gradient(90deg, rgb(197, 102, 13), orange);
   border: 4px outset rgb(197, 102, 13);
+  box-shadow: 0 0 12px rgb(197, 102, 13);
 }
 
 #settings-btn {
@@ -794,7 +796,7 @@ a {
 }
 #zen-btn {
   background: linear-gradient(90deg, rgb(16, 119, 16), rgb(18, 125, 139));
-  box-shadow: 0 0 10px rgb(4, 196, 36);
+  box-shadow: 0 0 10px rgb(16, 119, 16);
 }
 
 #custom-btn {
@@ -926,7 +928,7 @@ a {
   right: 0;
   top: 0;
   transition: all 0.5s ease;
-  filter: brightness(0.1);
+  opacity: 0.4;
 }
 
 .tab-button:hover {
@@ -943,15 +945,137 @@ a {
   right: 0px !important;
 }
 
+.btn-particles {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+#tabpage-7,
+#tabpage-8 {
+  width: 60vw;
+  padding-left: 20vw;
+  padding-right: 20vw;
+}
+
+#tabpage-8 h3 {
+  font-family: "IBM Plex Mono";
+  text-align: justify;
+}
+
+#tabpage-8 {
+  font-size: 1.4em;
+  text-shadow: 0 0 4px black;
+  display: block;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0) 75%,
+    rgba(66, 54, 134, 0.664)
+  );
+}
+
+#tabpage-2 {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0) 75%,
+    rgba(255, 166, 0, 0.288)
+  );
+}
+
+#tabpage-7 {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0) 75%,
+    rgba(31, 58, 145, 0.664)
+  );
+}
+
+#tabpage-8 img {
+  width: 300px;
+}
+
+.about-me {
+  position: relative;
+  left: 20px;
+}
+
+.about-me h4 {
+  margin: 0;
+  font-family: "IBM Plex Mono";
+  font-size: 1.2em;
+}
+
+.about-me p {
+  margin: 0;
+}
+
+.largeAbout {
+  font-size: 4em;
+}
+
+.clast {
+  font-weight: 500;
+  margin-bottom: 100px !important;
+  color: rgb(95, 174, 219) !important;
+  font-family: "IBM Plex Sans" !important;
+}
+
+.credit-title {
+  color: gold;
+  font-family: "IBM Plex Mono";
+  font-size: 1.5em;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+.credit-owner {
+  margin-top: 20px;
+  margin-bottom: 20px;
+  font-size: 1.2em;
+}
+
+.credit-owner:link {
+  color: white;
+}
+.credit-owner a:link {
+  color: white;
+}
+
+.credit-owner a:visited {
+  color: white;
+}
+
+.credit-owner a:hover {
+  color: white;
+}
+
+.credit-owner a:link {
+  color: white;
+}
+
+.credit-title a {
+  color: orange;
+  font-size: 1em;
+}
+
+.visible {
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
 .tabpage {
+  visibility: hidden;
+  opacity: 0;
+  display: flex;
   overflow-y: auto;
   overflow-x: hidden;
   padding-top: 100px;
-  position: absolute;
+  position: fixed;
   height: calc(100vh - 280px);
   right: -85vw;
   top: 100px; /* below header */
-  display: flex;
   flex-direction: column;
   gap: 45px;
   z-index: 5;

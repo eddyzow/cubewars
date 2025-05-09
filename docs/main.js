@@ -79,48 +79,8 @@ function hideBox(name) {
   });
 }
 
-tsParticles.load("fire-canvas", {
-  fullScreen: { enable: false },
-  particles: {
-    number: { value: 0 },
-    color: { value: ["#ff9900", "#ff3300", "#ffaa00"] },
-    shape: { type: "circle" },
-    opacity: {
-      value: 1,
-      animation: { enable: true, speed: 1, minimumValue: 0, sync: false },
-    },
-    size: {
-      value: { min: 2, max: 5 },
-      animation: { enable: true, speed: 10, minimumValue: 1, sync: false },
-    },
-    life: {
-      duration: {
-        sync: false,
-        value: 1,
-      },
-      count: 0,
-    },
-    move: {
-      enable: true,
-      gravity: { enable: true, acceleration: -10 },
-      speed: { min: 5, max: 10 },
-      direction: "top",
-      outModes: { default: "destroy" },
-    },
-  },
-  emitters: {
-    direction: "top",
-    position: { x: 50, y: 100 },
-    rate: {
-      delay: 0.1,
-      quantity: 5,
-    },
-    size: {
-      width: 100,
-      height: 10,
-    },
-  },
-});
+tsParticles.loadJSON("fire-canvas", "assets/fire-particles.json");
+tsParticles.loadJSON("zen-canvas", "assets/zen-particles.json");
 
 // Function to generate a random salt
 function generateSalt(length = 16) {
@@ -235,8 +195,11 @@ function openGame(data) {
   hidePreload();
   showBox("home-container");
   pg = 1;
+  $("#main-header").text("HOME");
+  $("#main-footer").text("CUBE WARS HOME");
   $("#changelog").remove();
   $("#main-tabs").addClass("show");
+  $("#tabpage-1").addClass("visible");
   $("#tabpage-1").css("right", "0vw");
 }
 
@@ -301,8 +264,36 @@ $(document).ready(function () {
     $("#back-btn").css("left", "-70px");
     $("#tabpage-1").css("right", "-85vw");
     $("#tabpage-2").css("right", "-0vw");
-
+    $("#tabpage-1").removeClass("visible");
+    $("#tabpage-2").addClass("visible");
     pg = 2;
+    $("#main-header").text("PLAY");
+    $("#main-footer").text("SELECT A GAME MODE!");
+  });
+
+  $("#settings-btn").on("click", function () {
+    $("#back-btn").removeClass("no-hover");
+    $("#back-btn").css("left", "-70px");
+    $("#tabpage-1").css("right", "-85vw");
+    $("#tabpage-7").css("right", "-0vw");
+    $("#tabpage-1").removeClass("visible");
+    $("#tabpage-7").addClass("visible");
+    pg = 7;
+    $("#main-header").text("SETTINGS");
+    $("#main-footer").text("TWEAK YOUR EXPERIENCE");
+  });
+
+  $("#about-btn").on("click", function () {
+    $("#back-btn").removeClass("no-hover");
+    $("#back-btn").css("left", "-70px");
+    $("#tabpage-1").css("right", "-85vw");
+    $("#tabpage-8").css("right", "-0vw");
+    $("#tabpage-1").removeClass("visible");
+    $("#tabpage-8").addClass("visible");
+    pg = 8;
+    $("#tabpage-8").scrollTop(0);
+    $("#main-header").text("ABOUT");
+    $("#main-footer").text("ABOUT CUBE WARS");
   });
 
   $("#back-btn").on("click", function () {
@@ -310,7 +301,31 @@ $(document).ready(function () {
       $("#back-btn").addClass("no-hover").css("left", "-270px");
       $("#tabpage-2").css("right", "-85vw");
       $("#tabpage-1").css("right", "0vw");
+      $("#tabpage-2").removeClass("visible");
+      $("#tabpage-1").addClass("visible");
       pg = 1;
+      $("#main-header").text("HOME");
+      $("#main-footer").text("CUBE WARS HOME");
+    }
+    if (pg === 7) {
+      $("#back-btn").addClass("no-hover").css("left", "-270px");
+      $("#tabpage-7").css("right", "-85vw");
+      $("#tabpage-1").css("right", "0vw");
+      $("#tabpage-7").removeClass("visible");
+      $("#tabpage-1").addClass("visible");
+      pg = 1;
+      $("#main-header").text("HOME");
+      $("#main-footer").text("CUBE WARS HOME");
+    }
+    if (pg === 8) {
+      $("#back-btn").addClass("no-hover").css("left", "-270px");
+      $("#tabpage-8").css("right", "-85vw");
+      $("#tabpage-1").css("right", "0vw");
+      $("#tabpage-8").removeClass("visible");
+      $("#tabpage-1").addClass("visible");
+      pg = 1;
+      $("#main-header").text("HOME");
+      $("#main-footer").text("CUBE WARS HOME");
     }
   });
 

@@ -1,0 +1,24 @@
+{
+  "fullScreen": { "enable": false },
+  "particles": {
+    "number": { "value": 25 },
+    "color": { "value": "#00ffcc" },
+    "shape": { "type": "circle" },
+    "opacity": {
+      "value": 0.4,
+      "animation": {
+        "enable": true,
+        "speed": 0.3,
+        "minimumValue": 0.2,
+        "sync": false
+      }
+    },
+    "size": { "value": { "min": 1, "max": 4 } },
+    "move": {
+      "enable": true,
+      "speed": 0.5,
+      "direction": "none",
+      "outModes": { "default": "bounce" }
+    }
+  }
+}
