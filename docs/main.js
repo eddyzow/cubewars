@@ -199,6 +199,7 @@ function openGame(data) {
   $("#main-footer").text("CUBE WARS HOME");
   $("#changelog").remove();
   $("#main-tabs").addClass("show");
+  $("#username-text").text(localStorage.getItem("username").toUpperCase());
   $("#tabpage-1").addClass("visible");
   $("#tabpage-1").css("right", "0vw");
 }
@@ -283,6 +284,19 @@ $(document).ready(function () {
     $("#main-footer").text("TWEAK YOUR EXPERIENCE");
   });
 
+  $("#ranked-btn").on("click", function () {
+    $("#back-btn").removeClass("no-hover");
+    $("#back-btn").css("left", "-70px");
+    $("#tabpage-2").css("right", "-85vw");
+    $("#tabpage-3").css("right", "-0vw");
+    $("#tabpage-2").removeClass("visible");
+    $("#tabpage-3").addClass("visible");
+    pg = 3;
+    $("#tabpage-3").scrollTop(0);
+    $("#main-header-text").text("THE TESSERACT");
+    $("#main-footer").text("CLIMB THE RANKS IN 1v1 MATCHUPS");
+  });
+
   $("#about-btn").on("click", function () {
     $("#back-btn").removeClass("no-hover");
     $("#back-btn").css("left", "-70px");
@@ -326,6 +340,15 @@ $(document).ready(function () {
       pg = 1;
       $("#main-header-text").text("HOME");
       $("#main-footer").text("CUBE WARS HOME");
+    }
+    if (pg === 3) {
+      $("#tabpage-3").css("right", "-85vw");
+      $("#tabpage-2").css("right", "0vw");
+      $("#tabpage-3").removeClass("visible");
+      $("#tabpage-2").addClass("visible");
+      pg = 2;
+      $("#main-header-text").text("PLAY");
+      $("#main-footer").text("SELECT A GAME MODE!");
     }
   });
 
