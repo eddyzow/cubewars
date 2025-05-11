@@ -17,6 +17,17 @@ let pg = 0;
 let app;
 let preloadLayer, gameLayer;
 
+const rankColors = {
+  IRON: ["rgb(70, 70, 70)", "rgb(148, 148, 148)"],
+  BRONZE: ["rgb(139, 91, 50)", "rgb(185, 123, 69)"],
+  SILVER: ["rgb(101, 101, 101)", "rgb(191, 191, 191)"],
+  GOLD: ["rgb(255, 145, 2)", "rgb(217, 182, 20)"],
+  PLATINUM: ["rgb(33, 148, 74)", "rgb(48, 229, 205)"],
+  DIAMOND: ["rgb(200, 25, 97)", "rgb(191, 118, 220)"],
+  LEGEND: ["red", "rgb(255, 0, 105)"],
+  TRANSCENDENT: ["rgb(255, 0, 105)", "white"],
+};
+
 // DOM elements
 const indicator = document.getElementById("connection-indicator");
 const pingDisplay = document.getElementById("ping-display");
@@ -43,6 +54,57 @@ function showLoad() {
       $("#cube-3d-wrapper").append(warningText);
     }
   }, 5000);
+}
+
+const ranks = [
+  { name: "IRON", min: 0 },
+  { name: "BRONZE", min: 300 },
+  { name: "SILVER", min: 600 },
+  { name: "GOLD", min: 900 },
+  { name: "PLATINUM", min: 1200 },
+  { name: "DIAMOND", min: 1500 },
+  { name: "LEGEND", min: 1800 },
+  { name: "TRANSCENDENT", min: 2100, single: true },
+];
+
+function calculateRankInfo(rating) {
+  for (let i = ranks.length - 1; i >= 0; i--) {
+    const rank = ranks[i];
+    if (rating >= rank.min) {
+      if (rank.single) {
+        return {
+          name: rank.name,
+          division: null,
+          progress: 0,
+          lower: rank.min,
+          upper: null,
+        };
+      }
+
+      const divisionOffset = rating - rank.min;
+      const divisionIndex = Math.floor(divisionOffset / 100); // 0, 1, 2
+      const division = ["I", "II", "III"][divisionIndex]; // ascending order
+      const lower = rank.min + divisionIndex * 100;
+      const upper = lower + 100;
+
+      return {
+        name: rank.name,
+        division,
+        progress: divisionOffset % 100,
+        lower,
+        upper,
+      };
+    }
+  }
+
+  // Fallback for rating < 0 (shouldn't happen, but safe)
+  return {
+    name: "IRON",
+    division: "I",
+    progress: 0,
+    lower: 0,
+    upper: 100,
+  };
 }
 
 function hideLoad() {
@@ -285,17 +347,89 @@ $(document).ready(function () {
   });
 
   $("#ranked-btn").on("click", function () {
-    $("#back-btn").removeClass("no-hover");
-    $("#back-btn").css("left", "-70px");
-    $("#tabpage-2").css("right", "-85vw");
-    $("#tabpage-3").css("right", "-0vw");
-    $("#tabpage-2").removeClass("visible");
-    $("#tabpage-3").addClass("visible");
-    pg = 3;
-    $("#tabpage-3").scrollTop(0);
-    $("#main-header-text").text("THE TESSERACT");
-    $("#main-footer").text("CLIMB THE RANKS IN 1v1 MATCHUPS");
+    showLoad();
+    socket.emit(
+      "requestRankData",
+      localStorage.getItem("userToken"),
+      (response) => {
+        console.log(response);
+        hideLoad();
+
+        const rating = response.data.rankedRating || 0;
+        const gamesPlayed = response.data.rankedGamesPlayed || 0;
+
+        const rankInfo = calculateRankInfo(rating);
+
+        // Determine base gradient
+        const gradientColors = rankColors[rankInfo.name.toUpperCase()] || [
+          "#ffffff",
+          "#dddddd",
+        ];
+        const gradientCSS = `linear-gradient(to right, ${gradientColors[0]}, ${gradientColors[1]})`;
+
+        // Apply to progress bar
+        $("#rating-bar-fill").css("background", gradientCSS);
+        const glowColor = gradientColors[1];
+
+        // Apply soft glow to the entire rating-box
+        // Update rating number
+        $("#meter-rating").text(rating);
+
+        // Update rank name
+        const rankText = rankInfo.division
+          ? `${rankInfo.name} ${rankInfo.division}`
+          : rankInfo.name;
+        $("#rank-label").text(`RANK: ${rankText}`);
+
+        // Update thresholds
+        $("#threshold-low").text(`${rankInfo.lower}m`);
+        $("#threshold-high").text(
+          rankInfo.upper ? `${rankInfo.upper}m` : "MAX"
+        );
+
+        // Update progress bar
+        const percent = rankInfo.upper
+          ? ((rating - rankInfo.lower) / (rankInfo.upper - rankInfo.lower)) *
+            100
+          : 100;
+        $("#rating-bar-fill").css("width", `${percent}%`);
+
+        // Update progress text
+        const nextDivision = getNextDivision(rankInfo);
+        const progressText = rankInfo.upper
+          ? `${rankInfo.upper - rating}m TO ${nextDivision}`
+          : "MAXED OUT";
+        $("#progress-label").text(progressText);
+
+        // Final UI transitions
+        $("#back-btn").removeClass("no-hover").css("left", "-70px");
+        $("#tabpage-2").css("right", "-85vw").removeClass("visible");
+        $("#tabpage-3").css("right", "0vw").addClass("visible");
+        pg = 3;
+        $("#tabpage-3").scrollTop(0);
+        $("#main-header-text").text("THE TESSERACT");
+        $("#main-footer").text("CLIMB THE RANKS IN 1v1 MATCHUPS");
+      }
+    );
   });
+
+  function getNextDivision(rankInfo) {
+    const order = ["I", "II", "III"];
+    const nextIndex = order.indexOf(rankInfo.division) + 1;
+    const nextDivision = nextIndex < order.length ? order[nextIndex] : null;
+
+    return rankInfo.name === "TRANSCENDENT"
+      ? "MAXED OUT"
+      : nextDivision
+      ? `${rankInfo.name} ${nextDivision}`
+      : getNextRankName(rankInfo.name) + " I";
+  }
+
+  function getNextRankName(currentName) {
+    const rankNames = ranks.map((r) => r.name);
+    const i = rankNames.indexOf(currentName);
+    return rankNames[i + 1] || "TRANSCENDENT";
+  }
 
   $("#about-btn").on("click", function () {
     $("#back-btn").removeClass("no-hover");
