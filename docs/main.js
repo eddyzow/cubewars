@@ -16,7 +16,12 @@ if (build === "prod") {
 let pg = 0;
 let app;
 let preloadLayer, gameLayer;
-
+let pressedKeys = {}; // Tracks current key states
+let sendingInputs = false;
+window.addEventListener("blur", function () {
+  pressedKeys = {};
+  $("#joinBtn").text(JSON.stringify(pressedKeys));
+});
 const rankColors = {
   IRON: ["rgb(70, 70, 70)", "rgb(148, 148, 148)"],
   BRONZE: ["rgb(139, 91, 50)", "rgb(185, 123, 69)"],
@@ -213,9 +218,9 @@ function updateConnectionIndicator(connected) {
 // Function to measure ping
 function ping() {
   const start = Date.now();
-  socket.emit("ping-check", () => {
+  socket.emit("ping-check", (data) => {
     const latency = Date.now() - start;
-    pingDisplay.textContent = `Connected to us-east-1. Ping: ${latency}ms`;
+    pingDisplay.textContent = `Ping: ${latency}ms`;
   });
 }
 
@@ -346,6 +351,45 @@ $(document).ready(function () {
     $("#main-footer").text("TWEAK YOUR EXPERIENCE");
   });
 
+  // cooked
+
+  socket.on("requestKey", async (data, cb) => {
+    cb(pressedKeys);
+  });
+
+  const keyDisplay = document.getElementById("keyDisplay");
+
+  function updateKeyDisplay() {
+    const activeKeys = Object.keys(pressedKeys).filter((k) => pressedKeys[k]);
+    keyDisplay.textContent = "Pressed Keys: " + JSON.stringify(activeKeys);
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (!sendingInputs) return;
+
+    const key = e.key.toLowerCase(); // Normalize
+
+    if (!pressedKeys[key]) {
+      pressedKeys[key] = true;
+      updateKeyDisplay();
+      $("#joinBtn").text(JSON.stringify(pressedKeys));
+    }
+  });
+
+  document.addEventListener("keyup", (e) => {
+    if (!sendingInputs) return;
+
+    const key = e.key.toLowerCase(); // Normalize
+
+    if (pressedKeys[key]) {
+      delete pressedKeys[key];
+      updateKeyDisplay();
+      $("#joinBtn").text(JSON.stringify(pressedKeys));
+    }
+  });
+
+  // uncooked
+
   $("#ranked-btn").on("click", function () {
     showLoad();
     socket.emit(
@@ -354,6 +398,14 @@ $(document).ready(function () {
       (response) => {
         console.log(response);
         hideLoad();
+
+        if (response.error) {
+          forceLogOut(response.error);
+          return;
+        }
+
+        sendingInputs = true;
+        socket.emit("joinPlayers");
 
         const rating = response.data.rankedRating || 0;
         const gamesPlayed = response.data.rankedGamesPlayed || 0;
@@ -412,6 +464,14 @@ $(document).ready(function () {
       }
     );
   });
+
+  function forceLogOut(data) {
+    alert("Critical error: " + data);
+    clearUserData();
+    location.reload();
+    hideBox("login-box");
+    showBox("register-box");
+  }
 
   function getNextDivision(rankInfo) {
     const order = ["I", "II", "III"];
@@ -483,6 +543,7 @@ $(document).ready(function () {
       pg = 2;
       $("#main-header-text").text("PLAY");
       $("#main-footer").text("SELECT A GAME MODE!");
+      socket.emit("leavePlayers");
     }
   });
 
@@ -509,11 +570,7 @@ $(document).ready(function () {
   socket.on("tokenReturn", (data) => {
     console.log(data);
     if (data == "invalid") {
-      alert("User session is invalid. Please register or log in again.");
-      clearUserData();
-      location.reload();
-      hideBox("login-box");
-      showBox("register-box");
+      forceLogOut("User session is invalid. Please register or log in again.");
     }
   });
 

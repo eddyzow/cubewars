@@ -46,10 +46,11 @@
       <div id="preload-center-container">
         <div id="logo">
           <img src="assets/logo.png" alt="Cube Wars Logo" />
-          <div class="devmode">INDEV 25.19.06</div>
+          <div class="devmode">INDEV 25.20.01</div>
         </div>
 
         <div id="login-box" class="box">
+
           <p>WELCOME BACK TO CUBE WARS!</p>
           <h3>LOGGED IN AS:</h3>
           <h1>EDDYZOW</h1>
@@ -251,7 +252,10 @@
     </div>
   </div>
 </div>
-
+<div id="keyDisplay" style="font-family: monospace; padding: 8px; border: 1px solid #ccc; width: fit-content;">
+  Pressed Keys: {}
+</div>
+<p>The above "pressed keys" indicator is not actually directly reading off your keyboard - it's a test of the latency of Cube Wars' 32-tick server! Every 31.25 ms, the server updates, calling the client for what keys are currently pressed down. This prevents cheating because all game calculation is done on the server. If you are lagging, it usually means your ping is the culprit!</p>
 
   <div class="tab-sect cta-sect" id="enter-matchmaking">
     <h1>ENTER MATCHMAKING</h1>
@@ -349,9 +353,9 @@
     </div>
     <div
       class="tooltip" id="changelog"
-      title="Changelog (INDEV 25.19.06):&#10;- More backend and UI work for Tesseract"
+      title="Changelog (INDEV 25.20.01):&#10;- Initialized 32-tick server! Added a small feature/showcase in the Tesseract menu."
     >
-      Cube Wars INDEV 25.19.06 (May 11, 2025)
+      Cube Wars INDEV 25.20.01 (May 13, 2025)
     </div>
   </body>
 </html>
