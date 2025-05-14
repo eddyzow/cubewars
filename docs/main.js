@@ -353,16 +353,19 @@ $(document).ready(function () {
 
   // cooked
 
+  function updateKeyDisplay(keyMap) {
+    const activeKeys = Object.keys(keyMap || {}).filter((k) => keyMap[k]);
+    keyDisplay.textContent = "Pressed Keys: " + JSON.stringify(activeKeys);
+  }
+
   socket.on("requestKey", async (data, cb) => {
     cb(pressedKeys);
+    if (data && data.keys) {
+      updateKeyDisplay(data.keys);
+    }
   });
 
   const keyDisplay = document.getElementById("keyDisplay");
-
-  function updateKeyDisplay() {
-    const activeKeys = Object.keys(pressedKeys).filter((k) => pressedKeys[k]);
-    keyDisplay.textContent = "Pressed Keys: " + JSON.stringify(activeKeys);
-  }
 
   document.addEventListener("keydown", (e) => {
     if (!sendingInputs) return;
