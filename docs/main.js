@@ -351,17 +351,23 @@ $(document).ready(function () {
     $("#main-footer").text("TWEAK YOUR EXPERIENCE");
   });
 
-  // cooked
-
-  function updateKeyDisplay(keyMap) {
+  function updateKeyDisplay(keyMap, tick) {
     const activeKeys = Object.keys(keyMap || {}).filter((k) => keyMap[k]);
-    keyDisplay.textContent = "Pressed Keys: " + JSON.stringify(activeKeys);
+    keyDisplay.textContent =
+      `🎮 Server Tick: ${tick}\n` +
+      `🔑 Keys Recognized by Server: ${JSON.stringify(activeKeys)}`;
   }
 
-  socket.on("requestKey", async (data, cb) => {
-    cb(pressedKeys);
+  socket.on("requestKey", (data, cb) => {
+    cb({
+      keys: { ...pressedKeys },
+      tick: data.tick,
+    });
+  });
+
+  socket.on("serverState", (data) => {
     if (data && data.keys) {
-      updateKeyDisplay(data.keys);
+      updateKeyDisplay(data.keys, data.tick);
     }
   });
 
@@ -369,29 +375,21 @@ $(document).ready(function () {
 
   document.addEventListener("keydown", (e) => {
     if (!sendingInputs) return;
-
-    const key = e.key.toLowerCase(); // Normalize
-
+    const key = e.key.toLowerCase();
     if (!pressedKeys[key]) {
       pressedKeys[key] = true;
-      updateKeyDisplay();
       $("#joinBtn").text(JSON.stringify(pressedKeys));
     }
   });
 
   document.addEventListener("keyup", (e) => {
     if (!sendingInputs) return;
-
-    const key = e.key.toLowerCase(); // Normalize
-
+    const key = e.key.toLowerCase();
     if (pressedKeys[key]) {
       delete pressedKeys[key];
-      updateKeyDisplay();
       $("#joinBtn").text(JSON.stringify(pressedKeys));
     }
   });
-
-  // uncooked
 
   $("#ranked-btn").on("click", function () {
     showLoad();
