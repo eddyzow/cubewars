@@ -1,0 +1,188 @@
+:root {
+  --primary-text: #e0e0e0;
+  --background-dark: #1a1a1a;
+  --background-medium: #282828;
+  --background-light: #3a3a3a;
+  --accent-color: #fca311;
+  --link-color: #4dabf7;
+  --border-color: #444;
+}
+
+body {
+  font-family: "IBM Plex Sans", Helvetica, sans-serif;
+  background-color: var(--background-dark);
+  color: var(--primary-text);
+  margin: 0;
+  padding: 0;
+  background-image: url("https://www.transparenttextures.com/patterns/gplay.png");
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+}
+
+#header {
+  z-index: 10;
+  width: 100%;
+  font-size: 1.5em;
+  font-weight: bold;
+  color: white;
+  background: linear-gradient(rgb(55, 55, 55), rgb(30, 30, 30));
+  margin: 0;
+  border-bottom: 3px solid rgb(15, 15, 15);
+  padding: 20px 0;
+  text-align: center;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.page-container {
+  display: flex;
+  max-width: 1100px;
+  margin: 40px auto;
+  padding: 0 20px;
+  gap: 40px;
+}
+
+#sidebar {
+  background-color: rgba(0, 0, 0, 0.64);
+  width: 240px;
+  padding: 32px;
+  border: 2px solid rgb(120, 120, 120);
+  border-radius: 8px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 40px;
+  align-self: flex-start;
+}
+
+#sidebar h2 {
+  font-size: 1.8em;
+  color: var(--primary-text);
+  border-bottom: 2px solid var(--border-color);
+  padding-bottom: 10px;
+  margin-top: 0;
+}
+
+#sidebar ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+#sidebar li a {
+  display: block;
+  color: #ccc;
+  text-decoration: none;
+  padding: 12px 15px;
+  border-radius: 5px;
+  margin-bottom: 8px;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+#sidebar li a:hover {
+  background-color: var(--background-light);
+  color: white;
+}
+
+#sidebar li .post-date {
+  font-size: 0.8em;
+  color: #888;
+  display: block;
+  margin-top: 4px;
+}
+
+.posts-list {
+  flex-grow: 1;
+}
+
+.post {
+  background: linear-gradient(rgba(45, 45, 45, 0.9), rgba(30, 30, 30, 0.95));
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  padding: 25px 40px;
+  margin-bottom: 40px;
+  box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.4);
+}
+
+.post-title {
+  font-size: 2.5em;
+  font-weight: 700;
+  color: var(--accent-color);
+  margin-top: 0;
+  margin-bottom: 10px;
+  text-shadow: 0px 0px 5px rgba(252, 163, 17, 0.5);
+}
+
+.post-meta {
+  font-size: 0.9em;
+  color: #aaa;
+  margin-bottom: 30px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 15px;
+}
+
+.post-meta .author {
+  font-weight: bold;
+  color: #ddd;
+}
+
+.post-body {
+  font-size: 1.1em;
+  line-height: 1.7;
+}
+
+.post-body h2 {
+  font-size: 1.6em;
+  color: #e5e5e5;
+  border-left: 3px solid var(--accent-color);
+  padding-left: 15px;
+  margin-top: 40px;
+}
+
+.post-body p {
+  margin-bottom: 20px;
+}
+
+.post-body code {
+  background-color: #111;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: monospace;
+  color: #a5d6ff;
+}
+
+.post-body a {
+  color: var(--link-color);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.post-body a:hover {
+  color: #74c0fc;
+  text-decoration: underline;
+}
+
+#footer {
+  width: 100%;
+  text-align: center;
+  font-size: 1em;
+  font-weight: 300;
+  color: white;
+  background: linear-gradient(rgb(55, 55, 55), rgb(30, 30, 30));
+  margin: 0;
+  border-top: 3px solid rgb(15, 15, 15);
+  padding: 25px 0;
+  margin-top: 50px;
+}
+
+/* Responsive Design for smaller screens */
+@media (max-width: 768px) {
+  .page-container {
+    flex-direction: column;
+  }
+
+  #sidebar {
+    width: 100%;
+    position: static;
+    margin-bottom: 40px;
+  }
+}

@@ -46,7 +46,7 @@
       <div id="preload-center-container">
         <div id="logo">
           <img src="assets/logo.png" alt="Cube Wars Logo" />
-          <div class="devmode">INDEV 25.20.01</div>
+          <div class="devmode">INDEV 25.27.01</div>
         </div>
 
         <div id="login-box" class="box">
@@ -143,8 +143,8 @@
         <a href="https://youtube.com/@eddyzow" target="_blank" title="YouTube">
           <img src="assets/icon-youtube.svg" alt="YouTube" />
         </a>
-        <a href="" target="_blank" title="Game Info">
-          <img src="assets/icon-info.svg" alt="Info" />
+        <a href="journal" target="_blank" title="Cube Wars Journal">
+          <img src="assets/icon-info.svg" alt="Cube Wars Journal" />
         </a>
         <a
           href="https://github.com/eddyzow/cubewars"
@@ -226,6 +226,8 @@
       </div>
 
      <div id="tabpage-3" class="tabpage">
+      <div id="border-flash"></div>
+
   <img src="assets/tesseract-logo.png" alt="Tesseract Logo" />
 
 <div class="rating-box">
@@ -258,7 +260,7 @@
 <p>The above "pressed keys" indicator is not actually directly reading off your keyboard - it's a test of the latency of Cube Wars' 32-tick server! Every 31.25 ms, the server updates, calling the client for what keys are currently pressed down. This prevents cheating because all game calculation is done on the server. If you are lagging, it usually means your ping is the culprit!</p>
 
   <div class="tab-sect cta-sect" id="enter-matchmaking">
-    <h1>ENTER MATCHMAKING</h1>
+    <h1 id="mmtimer">ENTER MATCHMAKING</h1>
     <h4>LEAVING COUNTS AS A LOSS</h4>
   </div>
 
@@ -289,7 +291,7 @@
       <h2 class="credit-owner"><a href="https://eddyzow.net" target="_blank">Eddy Zhao (@eddyzow)</a></h2>
           <div class="about-me">
             <h4>ABOUT ME</h4>
-            <p>I'm a high school senior with a keen interest in astronomy and astrophysics. On the side, I code HTML/JS webapps as an amateur hobby. In 2024, I ran a middle/high school <a href="https://bobabyte.org" target="_blank">hackathon</a> in the Boston area for middle and high schoolers. </p>
+            <p>I'm a high school graduate with a keen interest in astronomy and astrophysics. On the side, I code HTML/JS webapps as an amateur hobby. In 2024, I ran a middle/high school <a href="https://bobabyte.org" target="_blank">hackathon</a> in the Boston area for middle and high schoolers. </p>
           </div>
       <p class="credit-title">MUSIC, SOUND EFFECTS</p>
       <h2 class="credit-owner"><a href="https://hurtrecord.com" target="_blank">HURT RECORD</a></h2>
@@ -307,9 +309,9 @@
         <li>... + many more!</li>
       </ul>      
       <p class="credit-title">HEAVILY INSPIRED BY <a href="https://tetr.io" target="_blank">TETR.IO</a> BY OSK - THANK YOU!</p>
-      <p class="credit-title clast" style="  color: rgb(95, 174, 219) !important;">1 APP, 100 HOURS - HACK CLUB SAN FRANCISCO NEIGHBORHOOD ENTRY</p>
-       </div>
+      <p class="credit-title" style="margin-bottom: 120px">Created for Hack Club's Summer of Making -- June 2025</p>
 
+       </div>
       <div id="main-footer">
         <div>CUBE WARS HOME</div>
         <div id="icons-footer">
@@ -342,20 +344,12 @@
       <div class="dev-label">DEVELOPMENT BUILD</div>
       <div class="dev-note">If you are not the developer, do not interact.</div>
     </div>
-    <div id="mobile-warning">
-      <div id="mobile-warning-box">
-        <h1>🚫 Mobile Not Supported</h1>
-        <p>Thanks for checking out Cube Wars!</p>
-        <p>Cube Wars is not available on phones or small screens.</p>
-        <p>Please use a desktop or laptop to play.</p>
-        <a href="https://eddyzow.net">Or click here to check out my website!</a>
-      </div>
-    </div>
     <div
       class="tooltip" id="changelog"
-      title="Changelog (INDEV 25.20.01):&#10;- Initialized 32-tick server! Added a small feature/showcase in the Tesseract menu."
+      title="Changelog (INDEV 25.27.01):&#10;- Resumed work on Cube Wars!&#10;- Added the In Queue screen and animations (fake right now but i will wire it up to the server soon)!&#10;- Deleted the mobile warning screen! &#10;- Introduced the Cube Wars Journal!"
     >
-      Cube Wars INDEV 25.20.01 (May 13, 2025)
+      Cube Wars INDEV 25.27.01 (July 5, 2025)
     </div>
+    
   </body>
 </html>

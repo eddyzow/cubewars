@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cube Wars Journal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,700;1,400&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="header">CUBE WARS JOURNAL</div>
+
+    <div class="page-container">
+      <aside id="sidebar">
+        <h2>All Entries</h2>
+        <ul>
+          <li>
+            <a href="#post-1">
+              The Latency Dilemma
+              <span class="post-date">July 5, 2025</span>
+            </a>
+          </li>
+          <li>
+            <a href="#post-0">
+              The Concept
+              <span class="post-date">July 5, 2025</span>
+            </a>
+          </li>
+        </ul>
+      </aside>
+
+      <main class="posts-list">
+        <div class="post" id="post-1">
+          <h1 class="post-title">The Latency Dilemma</h1>
+          <div class="post-meta">
+            Posted on <span class="date">July 5, 2025</span> by
+            <span class="author">eddyzow</span>
+          </div>
+          <div class="post-body">
+            <p>
+              Welcome to my developer log for Cube Wars! I'm already 28 hours
+              in, but I think there will be plenty of challenge for me to write
+              about in the upcoming weeks and months. I would like to ship a
+              fully functional game by sometime in the fall, hopefully when I am
+              settled into college.
+            </p>
+            <p>
+              I initially decided to create this game for Hack Club's
+              Neighborhood program -- a neat initiative that lets young hackers
+              live in San Francisco making projects for free. Ultimately, I
+              ended up making the difficult decision to not participate after 28
+              hours of work, but here I am with an unfinished game and some
+              extra time!
+            </p>
+            <p>
+              I feel like I should talk about something I discovered early on
+              into development since this is my first devlog, so here we go!
+            </p>
+            <h2>Authoritative vs. Responsive</h2>
+            <p>
+              Part of the struggle with building a real-time game is how to
+              juggle between an authoritative model and a responsive model. I
+              want my game state to be controlled entirely on the server to
+              prevent cheating, but I also want the user to feel a snappy input
+              with absolutely no delay.
+            </p>
+            <p>
+              Most production video games I've played have a solution to this:
+              <strong>client-side prediction</strong>. Ever notice how in games
+              like Minecraft or Valorant, when you lose connection on a server,
+              you can still move around? And when you reconnect, you teleport
+              back to where the server thinks you're at? That's no surprise.
+            </p>
+
+            <h2>Prediction and Reconciliation</h2>
+            <p>
+              Client-side prediction is a solution that predicts locally the
+              actions that will be taken by the user BEFORE the server can
+              respond back. Most of the time, these actions are the same; the
+              prediction is correct, and the player notices nothing.
+            </p>
+            <p>
+              If the prediction is <i>incorrect</i> (e.g., you tried to rotate
+              into a wall that the server knows about but your client didn't
+              yet), the client must snap the piece back into the server's
+              correct position. This is called <strong>reconciliation</strong>.
+            </p>
+            <p>
+              In the case of Cube Wars, I'm choosing to include this option, but
+              only after the minimum viable product (MVP) is shipped. I'm still
+              learning this process, and I hope that this summer is enough time
+              for me to complete the MVP.
+            </p>
+          </div>
+        </div>
+
+        <div class="post" id="post-0">
+          <h1 class="post-title">The Concept</h1>
+          <div class="post-meta">
+            Posted on <span class="date">July 5, 2025</span> by
+            <span class="author">eddyzow</span>
+          </div>
+          <div class="post-body">
+            <h2>Inspiration and Goals</h2>
+            <p>
+              Every project starts with an idea. For Cube Wars, the inspiration
+              came from a love for classic block-stacking puzzle games. I am a
+              longtime player of stackers like Tetris or Block Blast, and I'm
+              familiar with another online stacker, TETR.IO, which is a big
+              inspiration (thanks osk!). However, there is nothing currently
+              that deals with a two-dimensional stacker realm, and I felt that
+              twisting the game in this manner could produce something super
+              cool.
+            </p>
+            <p>
+              The core concept is a two-dimensional, 10x10 grid where players
+              place pieces to clear lines both horizontally and vertically. The
+              twist is the head-to-head, real-time nature of the game.
+            </p>
+          </div>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

@@ -13,6 +13,9 @@ if (build === "prod") {
   $("#dev-warning").remove();
 }
 
+let mm = 0;
+let mmInterval;
+let mmStartTime;
 let pg = 0;
 let app;
 let preloadLayer, gameLayer;
@@ -327,9 +330,44 @@ $(document).ready(function () {
     }
   });
 
+  $("#enter-matchmaking").on("click", function () {
+    if (mm === 0) {
+      // Matchmaking turning on
+      $("#enter-matchmaking").addClass("queue");
+      mm = 1;
+      $("#back-btn").addClass("no-hover").css("left", "-270px");
+
+      mmStartTime = Date.now();
+      $("#mmtimer").text("IN QUEUE - 00:00");
+      $("#main-header-text").text(`THE TESSERACT - 00:00`);
+
+      mmInterval = setInterval(function () {
+        let elapsed = Math.floor((Date.now() - mmStartTime) / 1000);
+        let minutes = String(Math.floor(elapsed / 60)).padStart(2, "0");
+        let seconds = String(elapsed % 60).padStart(2, "0");
+        $("#main-header-text").text(`THE TESSERACT - ${minutes}:${seconds}`);
+        $("#mmtimer").text(`IN QUEUE - ${minutes}:${seconds}`);
+      }, 1000);
+
+      // Apply flashing border (smooth zoom-in)
+      $("#border-flash").addClass("flashing-border");
+    } else {
+      // Matchmaking turning off
+      $("#enter-matchmaking").removeClass("queue");
+      mm = 0;
+      $("#back-btn").removeClass("no-hover").css("left", "-70px");
+
+      clearInterval(mmInterval);
+      $("#mmtimer").text("ENTER MATCHMAKING");
+      $("#main-header-text").text("THE TESSERACT");
+
+      // Smoothly shrink the border back
+      $("#border-flash").removeClass("flashing-border");
+    }
+  });
+
   $("#play-btn").on("click", function () {
-    $("#back-btn").removeClass("no-hover");
-    $("#back-btn").css("left", "-70px");
+    $("#back-btn").removeClass("no-hover").css("left", "-70px");
     $("#tabpage-1").css("right", "-85vw");
     $("#tabpage-2").css("right", "-0vw");
     $("#tabpage-1").removeClass("visible");
@@ -340,8 +378,7 @@ $(document).ready(function () {
   });
 
   $("#settings-btn").on("click", function () {
-    $("#back-btn").removeClass("no-hover");
-    $("#back-btn").css("left", "-70px");
+    $("#back-btn").removeClass("no-hover").css("left", "-70px");
     $("#tabpage-1").css("right", "-85vw");
     $("#tabpage-7").css("right", "-0vw");
     $("#tabpage-1").removeClass("visible");
@@ -493,8 +530,7 @@ $(document).ready(function () {
   }
 
   $("#about-btn").on("click", function () {
-    $("#back-btn").removeClass("no-hover");
-    $("#back-btn").css("left", "-70px");
+    $("#back-btn").removeClass("no-hover").css("left", "-70px");
     $("#tabpage-1").css("right", "-85vw");
     $("#tabpage-8").css("right", "-0vw");
     $("#tabpage-1").removeClass("visible");
@@ -536,7 +572,7 @@ $(document).ready(function () {
       $("#main-header-text").text("HOME");
       $("#main-footer").text("CUBE WARS HOME");
     }
-    if (pg === 3) {
+    if (pg === 3 && mm == 0) {
       $("#tabpage-3").css("right", "-85vw");
       $("#tabpage-2").css("right", "0vw");
       $("#tabpage-3").removeClass("visible");
