@@ -1,7 +1,12 @@
 {
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
   "liveServer.settings.port": 5502
 }
+=======
+    "liveServer.settings.port": 5502
+}
+>>>>>>> Stashed changes
 =======
     "liveServer.settings.port": 5502
 }
