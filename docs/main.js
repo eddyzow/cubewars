@@ -268,6 +268,7 @@ function openGame(data) {
   $("#main-header-text").text("HOME");
   $("#main-footer").text("CUBE WARS HOME");
   $("#changelog").remove();
+  $("#username-name").text(localStorage.getItem("username"));
   $("#main-tabs").addClass("show");
   $("#username-text").text(localStorage.getItem("username").toUpperCase());
   $("#tabpage-1").addClass("visible");
