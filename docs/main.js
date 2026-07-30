@@ -447,17 +447,20 @@ $(document).ready(function () {
       el.removeClass("ro-punch");
       void el[0].offsetWidth;
       el.addClass("ro-punch");
+      // Win = triumphant wipe; loss = a low dash whoosh.
+      Sfx.play(iWon ? "roundWin" : "dash", iWon ? 1 : 0.8);
       const leader = Math.max(newMine, newFoe);
-      if (leader === 2) {
-        $("#ro-sub").text("MATCH POINT");
-        Sfx.play("matchPoint");
-      } else {
-        Sfx.play("pickup", 1.2);
-      }
+      if (leader === 2) $("#ro-sub").text("MATCH POINT");
     }, 650);
 
-    // Fade out before the next round starts (round pause is 2.4s).
-    setTimeout(() => ov.removeClass("active"), 2050);
+    // Fade the score, then 3-2-1 into the next round. The engine's round
+    // pause is 4.3s: score 0-2.0s, countdown 2.0-4.1s, respawn at 4.3s.
+    setTimeout(() => ov.removeClass("active"), 1950);
+    setTimeout(() => {
+      if (activeGame && activeGame.game && !activeGame.game.over) {
+        runBigCountdown(null);
+      }
+    }, 2000);
   };
 
   // Post-match chat: type on the results screen, relayed to your opponent.
@@ -715,6 +718,37 @@ $(document).ready(function () {
     $("#home-container").show();
   }
 
+  // Shared 3-2-1-GO: used for the match intro AND between rounds.
+  function runBigCountdown(onGo) {
+    const Sfx = window.CubeArenaRender.Sfx;
+    Sfx.play("countdown");
+    const bc = document.getElementById("big-countdown");
+    const $bc = $(bc);
+    $bc.addClass("active");
+    const steps = ["3", "2", "1", "GO!"];
+    let i = 0;
+    const beat = () => {
+      if (!activeGame || (activeGame.game && activeGame.game.over)) {
+        $bc.removeClass("active punch go");
+        return;
+      }
+      $bc.text(steps[i]);
+      $bc.toggleClass("go", steps[i] === "GO!");
+      $bc.removeClass("punch");
+      void bc.offsetWidth;
+      $bc.addClass("punch");
+      if (steps[i] === "GO!") {
+        Sfx.play("matchBegin");
+        if (onGo) onGo();
+        setTimeout(() => $bc.removeClass("active punch go"), 700);
+      } else {
+        i++;
+        setTimeout(beat, 700);
+      }
+    };
+    beat();
+  }
+
   function launchGame(mode, opts) {
     opts = opts || {};
     window._lastLaunch = [mode, opts]; // so RESTART replays the full intro
@@ -777,40 +811,12 @@ $(document).ready(function () {
       isNet && opts.opponent ? "RATING " + (opts.opponent.rating || 0) : "TRAINING DUMMY"
     );
 
-    // Random act-intro stinger, like a game-show cold open.
-    Sfx.play("intro" + (1 + Math.floor(Math.random() * 3)));
     $("#match-intro").addClass("active");
 
     setTimeout(() => {
       $("#match-intro").removeClass("active");
       if (!activeGame) return; // player exited during the intro
-
-      // Big DOM countdown. 700ms per beat; sim + server both start at GO
-      // (server waits 4.6s total from match-found).
-      Sfx.play("countdown");
-      const bc = document.getElementById("big-countdown");
-      const $bc = $(bc);
-      $bc.addClass("active");
-      const steps = ["3", "2", "1", "GO!"];
-      let i = 0;
-      const beat = () => {
-        if (!activeGame) return;
-        $bc.text(steps[i]);
-        $bc.toggleClass("go", steps[i] === "GO!");
-        // Retrigger the punch animation.
-        $bc.removeClass("punch");
-        void bc.offsetWidth;
-        $bc.addClass("punch");
-        if (steps[i] === "GO!") {
-          Sfx.play("matchBegin");
-          activeGame.unfreeze();
-          setTimeout(() => $bc.removeClass("active punch go"), 700);
-        } else {
-          i++;
-          setTimeout(beat, 700);
-        }
-      };
-      beat();
+      runBigCountdown(() => activeGame && activeGame.unfreeze());
     }, 2400);
 
     // Live ping readout in the arena HUD. Local play just shows "LOCAL".

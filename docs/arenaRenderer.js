@@ -44,9 +44,10 @@
     pickup: "assets/sound/sfx/cw-pickup.mp3",
     wall: "assets/sound/sfx/cw-wall.mp3",
     // Champion pack: match-flow stingers.
-    countdown: "assets/sound/sfx/ch-321-short.mp3",
+    countdown: "assets/sound/sfx/ch-321.mp3",
     matchBegin: "assets/sound/sfx/ch-matchBegin.mp3",
     matchPoint: "assets/sound/sfx/ch-matchPoint.mp3",
+    roundWin: "assets/sound/sfx/level-up-wipe.mp3",
     victory: "assets/sound/sfx/ch-victory.mp3",
     defeat: "assets/sound/sfx/ch-defeat.mp3",
     intro1: "assets/sound/sfx/ch-act-intro1.mp3",

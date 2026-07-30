@@ -73,7 +73,7 @@
   // A match is FIRST TO 3 round wins. A KO ends the round; cubes respawn at
   // their starting spots after a short pause and fight again.
   const ROUND_WINS_NEEDED = 3;
-  const ROUND_PAUSE = 2.4; // seconds between rounds
+  const ROUND_PAUSE = 4.3; // seconds between rounds: score beat + 3-2-1
 
   // --- terrain ---------------------------------------------------------------
   // Crates block movement and eat shots; generated from the match seed, so

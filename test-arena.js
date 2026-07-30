@@ -199,14 +199,14 @@ console.log("\n== rounds: KO ends the ROUND, first to 3 ends the MATCH ==");
   ok("inter-round pause active", g.roundPauseT > 0);
 
   // Ride out the pause -> respawn.
-  run(g, TICK_RATE * 3, makeInput());
+  run(g, TICK_RATE * 5, makeInput());
   ok("cubes respawned alive at full hp",
      g.cubes[1].alive && g.cubes[1].hp === MAX_HP && g.cubes[0].hp === MAX_HP);
   ok("round counter advanced", g.round === 2, "round=" + g.round);
   ok("board swept of shots/items", g.shots.length === 0 && g.powerups.length === 0);
 
   koCube1();
-  run(g, TICK_RATE * 3, makeInput());
+  run(g, TICK_RATE * 5, makeInput());
   ok("2-0 after second KO", g.roundWins[0] === 2, g.roundWins.join("-"));
 
   koCube1();
