@@ -93,7 +93,6 @@
 
       // Pre-apply state, for authoritative-delta feedback below.
       const preHp = [g.cubes[0].hp, g.cubes[1].hp];
-      const preWins = g.roundWins ? g.roundWins.slice() : [0, 0];
 
       // Adopt the authoritative state wholesale...
       g.applySnapshot(data.snap);
@@ -118,11 +117,17 @@
             r.showAuthoritativeHit(i, drop);
           }
         }
-        // Round transitions are ONLY shown from server truth in net mode.
-        if (g.roundWins && (g.roundWins[0] !== preWins[0] || g.roundWins[1] !== preWins[1])) {
-          const rw = g.roundWins[0] > preWins[0] ? 0 : 1;
-          r.showRoundBanner(rw, g.roundWins);
+        // Round transitions compare SNAPSHOT-to-SNAPSHOT, never against the
+        // local prediction: prediction can register a KO before the server
+        // does, and comparing against it made a merely-behind snapshot look
+        // like the OPPONENT scored ("round lost" + score going down). Server
+        // win counts are monotonic, so snapshot deltas are unambiguous.
+        const snapWins = (data.snap && data.snap.roundWins) || null;
+        if (snapWins && this._lastSnapWins) {
+          if (snapWins[0] > this._lastSnapWins[0]) r.showRoundBanner(0, snapWins);
+          else if (snapWins[1] > this._lastSnapWins[1]) r.showRoundBanner(1, snapWins);
         }
+        if (snapWins) this._lastSnapWins = snapWins.slice();
         if (g.round !== undefined && this._lastRound !== undefined && g.round > this._lastRound) {
           r.showRoundStart(g.round);
         }
