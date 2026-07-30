@@ -193,6 +193,13 @@ function getUserData() {
 function clearUserData() {
   localStorage.removeItem("userToken");
   localStorage.removeItem("username");
+  localStorage.removeItem("guestName");
+}
+
+// Guest mode: playing without an account. Ranked, replays, and profiles are
+// account features; guests get CPU practice and custom rooms.
+function isGuest() {
+  return !getUserData();
 }
 
 // Function to display error messages
@@ -282,9 +289,34 @@ function openGame(data) {
   $("#main-footer").text("CUBE WARS HOME");
   $("#changelog").remove();
   $("#main-tabs").addClass("show");
-  $("#username-text").text(localStorage.getItem("username").toUpperCase());
+  $("#username-text").text(
+    (localStorage.getItem("username") || localStorage.getItem("guestName") || "GUEST").toUpperCase()
+  );
+  applyGuestGating();
   $("#tabpage-1").addClass("visible");
   $("#tabpage-1").css("right", "0vw");
+}
+
+// Visually lock account-only features for guests.
+function applyGuestGating() {
+  const g = isGuest();
+  $("#ranked-btn, #replays-btn").toggleClass("locked", g);
+  $("#level-indicator").toggleClass("guest", g);
+  $("#set-logout").text(g ? "LOG IN / REGISTER" : "LOG OUT");
+}
+
+// Small denial beat: tell the guest what they're missing without a modal.
+function guestDeny(msg) {
+  try {
+    window.CubeArenaRender.Sfx.play("wall", 1.2, 0.4);
+  } catch (e) {}
+  const f = $("#main-footer");
+  f.text(msg);
+  clearTimeout(window._guestDenyT);
+  window._guestDenyT = setTimeout(() => {
+    if (pg === 2) f.text("SELECT A GAME MODE!");
+    if (pg === 1) f.text("CUBE WARS HOME");
+  }, 2600);
 }
 
 particlesJS.load("particles-js", "assets/particles.json", function () {
@@ -327,6 +359,22 @@ $(document).ready(function () {
       ping();
     }
   }, 2000);
+
+  // PLAY AS GUEST: no account, server assigns a guest_xxxx name.
+  function enterGuestMode() {
+    clearUserData();
+    showLoad();
+    socket.emit("guest-hello", (resp) => {
+      hideLoad();
+      if (!resp || resp.error) {
+        $("#reg1-notice").text((resp && resp.error) || "Could not start a guest session.");
+        return;
+      }
+      localStorage.setItem("guestName", resp.name);
+      openGame();
+    });
+  }
+  $("#guest-btn").on("click", enterGuestMode);
 
   // Handle "LET'S GO!" button click
   $("#start-btn").on("click", function () {
@@ -470,7 +518,12 @@ $(document).ready(function () {
     if (!txt) return;
     this.value = "";
     socket.emit("match-chat", txt);
-    window._chatAppend && window._chatAppend((localStorage.getItem("username") || "me").toLowerCase(), txt, false);
+    window._chatAppend &&
+      window._chatAppend(
+        (localStorage.getItem("username") || localStorage.getItem("guestName") || "me").toLowerCase(),
+        txt,
+        false
+      );
     e.stopPropagation();
   });
   socket.on("match-chat", (m) => {
@@ -485,6 +538,7 @@ $(document).ready(function () {
 
   // Profile modal: click the header chip.
   function openProfile() {
+    if (isGuest()) return guestDeny("CREATE AN ACCOUNT TO TRACK STATS AND RATING");
     socket.emit("get-profile", localStorage.getItem("userToken"), (resp) => {
       if (resp.error || !resp.data) return;
       const p = resp.data;
@@ -554,7 +608,7 @@ $(document).ready(function () {
     $("#set-shake").prop("checked", s.shake);
     $("#set-shake-val").text(s.shake ? "ON" : "OFF");
     $("#set-username").text(
-      (localStorage.getItem("username") || "guest").toUpperCase()
+      (localStorage.getItem("username") || localStorage.getItem("guestName") || "guest").toUpperCase()
     );
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
   }
@@ -809,6 +863,7 @@ $(document).ready(function () {
     const meName = (
       opts.myName ||
       localStorage.getItem("username") ||
+      localStorage.getItem("guestName") ||
       "YOU"
     ).toUpperCase();
     const isNet = !!opts.netHooks;
@@ -1240,6 +1295,7 @@ $(document).ready(function () {
   });
 
   $("#replays-btn").on("click", function () {
+    if (isGuest()) return guestDeny("REPLAYS NEED AN ACCOUNT — LOG IN FROM SETTINGS");
     $("#back-btn").removeClass("no-hover").css("left", "-70px");
     $(".tabpage").css("right", "-85vw").removeClass("visible");
     $("#tabpage-5").css("right", "-0vw").addClass("visible");
@@ -1261,6 +1317,7 @@ $(document).ready(function () {
   });
 
   $("#ranked-btn").on("click", function () {
+    if (isGuest()) return guestDeny("RANKED NEEDS AN ACCOUNT — LOG IN FROM SETTINGS");
     showLoad();
     socket.emit(
       "requestRankData",
@@ -1462,6 +1519,8 @@ $(document).ready(function () {
   // Handle "CONTINUE" button click in registration
   $("#continue-btn").on("click", function () {
     const username = $("#username-input").val().trim();
+    // The register copy promises it: blank username = play as a guest.
+    if (!username) return enterGuestMode();
     if (!validateUsername(username)) {
       $("#reg1-notice").text("Username must be between 3 and 20 characters.");
       return;

@@ -3456,3 +3456,57 @@ hr {
   min-width: 190px;
   text-align: right;
 }
+
+/* ============================================================
+   GUEST MODE — account-only features visibly locked
+   ============================================================ */
+
+/* Secondary action on the register box. */
+.button-ghost {
+  background: transparent !important;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  opacity: 0.85;
+}
+.button-ghost:hover {
+  opacity: 1;
+  border-color: #fff;
+}
+
+/* Locked menu cards: dimmed, desaturated, badged. Still clickable so the
+   click can explain WHY it's locked. */
+.tab-button.locked {
+  position: relative;
+  opacity: 0.45;
+  filter: saturate(0.25);
+  cursor: not-allowed;
+}
+.tab-button.locked:hover {
+  opacity: 0.55;
+}
+/* Badge rides the title: these band cards extend past the right edge of the
+   viewport, so right-anchored positioning would land off-screen. */
+.tab-button.locked > h1::after,
+.tab-button.locked .text-section > h1::after {
+  content: "🔒 ACCOUNT REQUIRED";
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 20px;
+  font-family: "Martian Mono", monospace;
+  font-size: 0.66rem;
+  font-weight: 400;
+  font-style: normal;
+  letter-spacing: 0.18em;
+  color: #ffd166;
+  background: rgba(8, 11, 20, 0.85);
+  border: 1px solid rgba(255, 209, 102, 0.5);
+  padding: 8px 14px;
+  white-space: nowrap;
+  -webkit-text-stroke: 0;
+  text-shadow: none;
+}
+
+/* Header chip: no profile for guests. */
+#level-indicator.guest {
+  cursor: default;
+  opacity: 0.8;
+}
