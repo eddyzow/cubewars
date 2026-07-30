@@ -3255,3 +3255,19 @@ hr {
   margin: 12px 0 0 0;
   min-height: 16px;
 }
+
+/* Ping chip: true bottom-right corner, living inside the footer strip. */
+#connection-indicator-wrapper {
+  top: auto;
+  bottom: 10px;
+  right: 12px;
+  left: auto;
+  z-index: 10001; /* above the footer */
+  background: none;
+  border: none;
+  padding: 0;
+  opacity: 0.75;
+}
+
+/* Footer icons step aside so the corner belongs to the ping chip. */
+#icons-footer { margin-right: 130px; }
