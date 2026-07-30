@@ -680,7 +680,12 @@
       const g = this.puLayer;
       g.clear();
       const R = root.CubeArena.PU_R;
-      for (const p of this.game.powerups) {
+      // Online, ground items draw from SNAPSHOT truth: the local prediction
+      // spawns/consumes items a tick early, which made phantoms blink for a
+      // frame. (The cache was being written but never read — fixed.)
+      const list =
+        this.netMode && this._snapPowerups ? this._snapPowerups : this.game.powerups;
+      for (const p of list) {
         const col = PU_COLOR[p.kind] || 0xffffff;
         const bob = Math.sin(this.timeSec * 3 + p.x * 0.05) * 3;
         const pulse = 0.75 + 0.25 * Math.sin(this.timeSec * 5 + p.y * 0.05);
