@@ -9,15 +9,18 @@
       href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="style.css?v=1785432788" />
     <script src="https://cdn.jsdelivr.net/npm/tsparticles@2/tsparticles.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/6.5.10/browser/pixi.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.core.min.js"></script>
     <script src="https://cdn.socket.io/4.8.1/socket.io.js"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="assets/particles.min.js"></script>
-    <script src="gameRenderer.js"></script>
-    <script src="main.js" defer></script>
+    <script src="arenaEngine.js?v=1785432364"></script>
+    <script src="arenaRenderer.js?v=1785432364"></script>
+    <script src="arenaController.js?v=1785432364"></script>
+    <script src="arenaNet.js?v=1785432364"></script>
+    <script src="main.js?v=1785432364" defer></script>
   </head>
   <body>
     <div id="connection-indicator-wrapper">
@@ -25,7 +28,9 @@
       <span id="ping-display">Connecting...</span>
     </div>
 
-    <div id="cube-modal">
+    <!-- starts open: visible and spinning during initial connect; hideLoad()
+         removes .open which also pauses the animation (GPU flash fix) -->
+    <div id="cube-modal" class="open">
       <div id="cube-3d-wrapper">
         <div class="cube-3d">
           <div class="face front"></div>
@@ -65,9 +70,9 @@
         <div id="register-box" class="box">
           <p>Welcome to Cube Wars!</p>
           <h3>
-            AN OPEN-SOURCE, CLOUD-BASED MULTIPLAYER GAME INSPIRED BY A FAMILIAR
-            STACKER. CLEAR LINES IN TWO DIMENSIONS, ATTACK YOUR OPPONENTS, USE
-            EPIC POWERUPS, AND RISE IN THE RANKING LADDER!
+            AN OPEN-SOURCE, CLOUD-BASED ARENA FIGHTER. DUEL OTHER CUBES IN
+            REAL TIME — SHOOT, BRAWL, DASH, GRAB EPIC POWERUPS, AND RISE IN
+            THE RANKING LADDER!
           </h3>
           <hr />
           <h2>
@@ -166,15 +171,7 @@
       <div id="main-header">
         <div class="header-title" id="main-header-text">HOME</div>
         <div id="level-indicator">
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
           <div class="level-name" id="username-text">EDDYZOW</div>
-=======
-          <div class="level-name" id="username-name">EDDYZOW</div>
->>>>>>> Stashed changes
-=======
-          <div class="level-name" id="username-name">EDDYZOW</div>
->>>>>>> Stashed changes
           <div class="level-bar">
             <div class="level-fill">
               <span class="level-value">1</span>
@@ -238,65 +235,127 @@
      <div id="tabpage-3" class="tabpage">
       <div id="border-flash"></div>
 
-  <img src="assets/tesseract-logo.png" alt="Tesseract Logo" />
+      <img src="assets/tesseract-logo.png" alt="The Tesseract" class="tl-banner-logo" />
 
-<div class="rating-box">
-  <div class="rating-line">
-    <div class="rating-metric">
-      <div class="rating-value">
-        <h2 id="meter-rating">0</h2>
-        <p>m</p>
+      <div class="tl-ratingblock">
+        <div class="tl-rating-line">
+          <span id="meter-rating">0</span>
+          <span id="rank-label" class="tl-rank-chip">IRON I</span>
+        </div>
+        <p class="tl-substats" id="tl-substats">RATING: 0 · GAMES WON: 0 / 0 (0%)</p>
+        <div class="tl-progress">
+          <div class="tl-progress-label" id="progress-label">100m TO IRON II</div>
+          <div class="rating-bar-outer"><div id="rating-bar-fill" class="rating-bar-fill" style="width: 0%"></div></div>
+          <div class="thresholds">
+            <span id="threshold-low" class="threshold-low">0m</span>
+            <span id="threshold-high" class="threshold-high">100m</span>
+          </div>
+        </div>
       </div>
-      <div class="clip-rank">#999</div>
-    </div>
 
-    <div id="rank-label" class="rank-label">RANK: IRON I</div>
-  </div>
+      <div class="tl-queueline">
+        <span class="tl-big" id="tl-queue-count">0</span><label>IN QUEUE</label>
+        <span class="tl-dot">·</span>
+        <span class="tl-big" id="tl-game-count">0</span><label>IN GAME</label>
+        <span class="tl-dot">·</span>
+        <span class="tl-big" id="tl-online-count">0</span><label>ONLINE</label>
+      </div>
+      <div class="tl-mmbar" id="enter-matchmaking">
+        <h1 id="mmtimer">ENTER MATCHMAKING</h1>
+        <h4 id="mm-subtitle">FIND A 1v1 OPPONENT OF SIMILAR SKILL</h4>
+      </div>
 
-  <div class="progress-container">
-    <div id="progress-label" class="progress-label">100m TO IRON II</div>
-    <div class="rating-bar-outer">
-      <div id="rating-bar-fill" class="rating-bar-fill" style="width: 0%"></div>
-    </div>
-    <div class="thresholds">
-      <span id="threshold-low" class="threshold-low">0m</span>
-      <span id="threshold-high" class="threshold-high">100m</span>
-    </div>
-  </div>
-</div>
-<div id="keyDisplay" style="font-family: monospace; padding: 8px; border: 1px solid #ccc; width: fit-content;">
-  Pressed Keys: {}
-</div>
-<p>The above "pressed keys" indicator is not actually directly reading off your keyboard - it's a test of the latency of Cube Wars' 32-tick server! Every 31.25 ms, the server updates, calling the client for what keys are currently pressed down. This prevents cheating because all game calculation is done on the server. If you are lagging, it usually means your ping is the culprit!</p>
-
-  <div class="tab-sect cta-sect" id="enter-matchmaking">
-    <h1 id="mmtimer">ENTER MATCHMAKING</h1>
-    <h4>LEAVING COUNTS AS A LOSS</h4>
-  </div>
-
-  <div class="tab-sect clast">
-    <h2>WHAT IS THE TESSERACT?</h2>
-    <p>
-      The Tesseract is the online ranked mode of Cube Wars. Begin your journey at the base of the Tesseract, zero meters. Rise up the Tesseract when you win and fall down when you lose. Rise high enough and be promoted to higher ranks. Who will prove strong enough to stay at the top?
-    </p>
-  </div>
+      <div class="tl-howpanel">
+        <div class="tl-howpanel-head">
+          <h2>HOW DOES IT WORK?</h2>
+        </div>
+        <p>
+          ENTER MATCHMAKING AND YOU WILL BE MATCHED UP WITH A CUBE OF SIMILAR
+          SKILL IN A 1v1 DUEL.<br />
+          WIN GAMES TO GAIN METERS AND RANK UP! RISE HIGH ENOUGH AND BE
+          PROMOTED THROUGH THE RANKS, FROM IRON ALL THE WAY TO TRANSCENDENT.<br />
+          IF YOU LEAVE THE GAME EARLY AT ANY POINT, YOU WILL BE AWARDED A LOSS.
+          GO CONQUER THE RANKS!
+        </p>
+      </div>
+      <div class="scroll-spacer"></div>
 </div>
 
+
+      <div id="tabpage-4" class="tabpage">
+        <div class="tab-button cg-card">
+          <h2>CREATE A ROOM</h2>
+          <p class="cg-desc">GET A CODE AND SHARE IT WITH A FRIEND. FIRST TO 3 — UNRANKED.</p>
+          <div id="cg-create-wrap">
+            <button class="game-btn" id="cg-create">CREATE ROOM</button>
+          </div>
+          <div id="cg-hosting">
+            <div id="cg-code">&mdash;</div>
+            <p class="cg-wait">WAITING FOR AN OPPONENT TO JOIN...</p>
+            <button class="game-btn game-btn-exit" id="cg-cancel">CANCEL ROOM</button>
+          </div>
+        </div>
+
+        <div class="tab-button cg-card">
+          <h2>JOIN A ROOM</h2>
+          <p class="cg-desc">ENTER YOUR FRIEND'S ROOM CODE.</p>
+          <div class="cg-join-row">
+            <input id="cg-join-code" maxlength="5" placeholder="CODE" autocomplete="off" spellcheck="false" />
+            <button class="game-btn" id="cg-join">JOIN</button>
+          </div>
+          <p id="cg-error"></p>
+        </div>
+        <div class="scroll-spacer"></div>
+      </div>
 
       <div id="tabpage-7" class="tabpage">
-       <h1>SETTINGS</h1>
-       
+        <div class="settings-card">
+          <h2>AUDIO</h2>
+          <div class="settings-row">
+            <label for="set-sfx">SFX VOLUME</label>
+            <input type="range" id="set-sfx" min="0" max="100" value="55" />
+            <span class="settings-val" id="set-sfx-val">55</span>
+          </div>
+        </div>
 
-       
+        <div class="settings-card">
+          <h2>GAMEPLAY</h2>
+          <div class="settings-row">
+            <label for="set-shake">SCREEN SHAKE</label>
+            <input type="checkbox" id="set-shake" checked />
+            <span class="settings-val" id="set-shake-val">ON</span>
+          </div>
+          <div class="settings-row settings-keys">
+            <label>CONTROLS</label>
+            <div class="settings-keys-list">
+              <span><b>WASD</b> MOVE</span>
+              <span><b>MOUSE</b> AIM</span>
+              <span><b>CLICK</b> SHOOT</span>
+              <span><b>SPACE</b> MELEE</span>
+              <span><b>E</b> DASH</span>
+            </div>
+          </div>
+        </div>
 
+        <div class="settings-card">
+          <h2>ACCOUNT</h2>
+          <div class="settings-row">
+            <label>LOGGED IN AS</label>
+            <span class="settings-val" id="set-username">—</span>
+          </div>
+          <div class="settings-row">
+            <button class="game-btn game-btn-exit" id="set-logout">LOG OUT</button>
+          </div>
+        </div>
+        <div class="scroll-spacer"></div>
       </div>
 
       <div id="tabpage-8" class="tabpage">
         <img src="assets/logo.png" alt="Cube Wars Logo" />
         <h3 class="game-info">
-          AN OPEN-SOURCE, CLOUD-BASED MULTIPLAYER GAME INSPIRED BY A FAMILIAR
-          STACKER. CLEAR LINES IN TWO DIMENSIONS, ATTACK YOUR OPPONENTS, USE
-          EPIC POWERUPS, AND RISE IN THE RANKING LADDER!
+          AN OPEN-SOURCE, CLOUD-BASED ARENA FIGHTER. DUEL OTHER CUBES IN REAL
+          TIME — SHOOT, BRAWL, DASH-SLAM, HOLD THE HIGH GROUND, GRAB EPIC
+          POWERUPS, AND RISE UP THE TESSERACT!
         </h3>      <p class="credit-title">GAME CREATOR</p>
       <h2 class="credit-owner"><a href="https://eddyzow.net" target="_blank">Eddy Zhao (@eddyzow)</a></h2>
           <div class="about-me">
@@ -318,7 +377,7 @@
         <li>JSONWEBTOKEN</li>
         <li>... + many more!</li>
       </ul>      
-      <p class="credit-title">HEAVILY INSPIRED BY <a href="https://tetr.io" target="_blank">TETR.IO</a> BY OSK - THANK YOU!</p>
+      <p class="credit-title">RANKED LADDER INSPIRED BY <a href="https://tetr.io" target="_blank">TETR.IO</a> BY OSK - THANK YOU!</p>
       <p class="credit-title" style="margin-bottom: 120px">Created for Hack Club's Summer of Making -- June 2025</p>
 
        </div>
@@ -354,6 +413,118 @@
       <div class="dev-label">DEVELOPMENT BUILD</div>
       <div class="dev-note">If you are not the developer, do not interact.</div>
     </div>
+    <!-- GAME SCREEN: fullscreen overlay, outside the tabpage flow so the board
+         is never affected by tabpage scrolling or transitions. -->
+    <div id="game-screen">
+      <div id="game-wallpaper"></div>
+      <div id="game-stage"></div>
+
+      <div id="game-help">
+        <span><b>WASD</b> MOVE</span>
+        <span><b>MOUSE</b> AIM</span>
+        <span><b>CLICK</b> ATTACK</span>
+        <span><b>SPACE</b> DASH</span>
+        <span><b>E</b> USE ITEM</span>
+        <span><b>Q</b> DROP</span>
+        <span><b>R</b> RESTART</span>
+        <span><b>ESC</b> EXIT</span>
+      </div>
+
+      <div id="game-over-panel">
+        <div class="go-topbar">
+          <div class="go-topbar-title" id="go-topbar-title">THE TESSERACT / RESULTS</div>
+          <div class="go-topbar-chip" id="go-topbar-chip">
+            <span id="go-chip-name">PLAYER</span>
+            <span class="go-chip-rating" id="go-chip-rating">0m</span>
+          </div>
+        </div>
+
+        <h1 id="game-over-title">VICTORY</h1>
+
+        <div id="go-cards">
+          <div class="go-card go-me">
+            <p class="go-card-name" id="go-me-name">YOU</p>
+            <div class="go-card-big" id="go-me-big">1</div>
+            <div class="go-stats" id="go-me-stats"></div>
+          </div>
+          <div id="go-vs">VS</div>
+          <div class="go-card go-foe">
+            <p class="go-card-name" id="go-foe-name">OPPONENT</p>
+            <div class="go-card-big" id="go-foe-big">0</div>
+            <div class="go-stats" id="go-foe-stats"></div>
+          </div>
+        </div>
+
+        <div id="go-lower">
+          <div id="go-chat">
+            <p class="go-chat-title">CHAT</p>
+            <div id="go-chat-log"></div>
+            <input type="text" id="go-chat-input" maxlength="140" placeholder="message..." autocomplete="off" />
+          </div>
+          <div id="go-standing">
+            <p class="go-standing-label">TESSERACT STANDING</p>
+            <div class="go-standing-line">
+              <span id="go-rating">0</span>
+              <span id="go-delta" class="go-delta"></span>
+            </div>
+            <div class="go-rank-line">
+              <span id="go-rank" class="go-rank-chip">IRON I</span>
+              <span id="go-rank-progress" class="go-rank-progress"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="go-bottombar">
+          <div class="go-bottom-note">THE RESULTS ARE IN!</div>
+          <button id="go-next" class="go-next-btn">NEXT</button>
+        </div>
+      </div>
+
+      <!-- MATCH INTRO: fullscreen matchup card, then the big countdown. -->
+      <div id="match-intro">
+        <div id="mi-found">MATCH FOUND</div>
+        <div id="mi-cards">
+          <div class="mi-card mi-left">
+            <h2 id="mi-p1name">YOU</h2>
+            <p id="mi-p1sub">0m</p>
+          </div>
+          <div id="mi-vs">VS</div>
+          <div class="mi-card mi-right">
+            <h2 id="mi-p2name">BOT</h2>
+            <p id="mi-p2sub">PRACTICE</p>
+          </div>
+        </div>
+      </div>
+
+      <div id="big-countdown"></div>
+      <div id="game-flash"></div>
+
+      <!-- ROUND OVERLAY: big score shown, then the winner's digit ticks up. -->
+      <div id="round-overlay">
+        <p id="ro-label">ROUND WON</p>
+        <div id="ro-score">
+          <span id="ro-me">0</span><span class="ro-dash">&mdash;</span><span id="ro-foe">0</span>
+        </div>
+        <p id="ro-sub"></p>
+      </div>
+    </div>
+
+    <!-- PROFILE MODAL: opened by clicking the header user chip. -->
+    <div id="profile-modal">
+      <div id="profile-card">
+        <button id="profile-close">&times;</button>
+        <h1 id="profile-name">PLAYER</h1>
+        <p id="profile-rank" class="profile-rank">IRON I</p>
+        <div class="profile-grid">
+          <div class="profile-stat"><b id="profile-rating">0</b><label>RATING</label></div>
+          <div class="profile-stat"><b id="profile-wins">0</b><label>GAMES WON</label></div>
+          <div class="profile-stat"><b id="profile-games">0</b><label>GAMES PLAYED</label></div>
+          <div class="profile-stat"><b id="profile-level">1</b><label>LEVEL</label></div>
+        </div>
+        <p class="profile-joined" id="profile-joined">JOINED —</p>
+      </div>
+    </div>
+
     <div
       class="tooltip" id="changelog"
       title="Changelog (INDEV 25.27.01):&#10;- Resumed work on Cube Wars!&#10;- Added the In Queue screen and animations (fake right now but i will wire it up to the server soon)!&#10;- Deleted the mobile warning screen! &#10;- Introduced the Cube Wars Journal!"

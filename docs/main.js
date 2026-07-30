@@ -1,12 +1,19 @@
 // main.js
 
-// Determine build environment
-const build = "prod"; // Change to "prod" for production
+// Determine build environment.
+// Auto-detected from the hostname: localhost/127.0.0.1 means we're running
+// against a local server, anything else is production. Override by hand only
+// if you need to point a local page at the live backend.
+const build =
+  location.hostname === "localhost" || location.hostname === "127.0.0.1"
+    ? "dev"
+    : "prod";
 
-// Initialize socket connection
+// Initialize socket connection. In dev the server also serves this page, so
+// connecting to the page's own origin is correct.
 const socket =
   build === "dev"
-    ? io("localhost:3000")
+    ? io()
     : io("https://cubewars-826c3a3278db.herokuapp.com");
 
 if (build === "prod") {
@@ -43,7 +50,10 @@ const pingDisplay = document.getElementById("ping-display");
 // Utility functions to show/hide loading modal
 function showLoad() {
   $("#cube-3d-wrapper").css("transform", "scale(1)");
-  $("#cube-modal").css("opacity", "1").css("visibility", "visible");
+  $("#cube-modal")
+    .addClass("open") // gates the spin animation: only animate while visible
+    .css("opacity", "1")
+    .css("visibility", "visible");
   setTimeout(() => {
     if ($("#cube-modal").css("opacity") === "1" && !$("#load-warning").length) {
       const warningText = $("<div>")
@@ -117,7 +127,10 @@ function calculateRankInfo(rating) {
 
 function hideLoad() {
   $("#cube-3d-wrapper").css("transform", "scale(0)");
-  $("#cube-modal").css("opacity", "0").css("visibility", "hidden");
+  $("#cube-modal")
+    .removeClass("open")
+    .css("opacity", "0")
+    .css("visibility", "hidden");
   $("#load-warning").remove();
 }
 
@@ -268,7 +281,6 @@ function openGame(data) {
   $("#main-header-text").text("HOME");
   $("#main-footer").text("CUBE WARS HOME");
   $("#changelog").remove();
-  $("#username-name").text(localStorage.getItem("username"));
   $("#main-tabs").addClass("show");
   $("#username-text").text(localStorage.getItem("username").toUpperCase());
   $("#tabpage-1").addClass("visible");
@@ -331,6 +343,21 @@ $(document).ready(function () {
     }
   });
 
+  // Real matchmaking: the queue UI drives the server's queue, and a
+  // "match-found" from the server launches the online game.
+  const netSession = new window.CubeArenaNet.NetSession(socket);
+
+  function leaveQueueUI() {
+    $("#enter-matchmaking").removeClass("queue");
+    mm = 0;
+    $("#back-btn").removeClass("no-hover").css("left", "-70px");
+    clearInterval(mmInterval);
+    $("#mmtimer").text("ENTER MATCHMAKING");
+    $("#mm-subtitle").text("FIND A 1v1 OPPONENT OF SIMILAR SKILL");
+    $("#main-header-text").text("THE TESSERACT");
+    $("#border-flash").removeClass("flashing-border");
+  }
+
   $("#enter-matchmaking").on("click", function () {
     if (mm === 0) {
       // Matchmaking turning on
@@ -339,7 +366,8 @@ $(document).ready(function () {
       $("#back-btn").addClass("no-hover").css("left", "-270px");
 
       mmStartTime = Date.now();
-      $("#mmtimer").text("IN QUEUE - 00:00");
+      $("#mmtimer").text("FINDING MATCH");
+      $("#mm-subtitle").text("00:00 · CLICK TO CANCEL");
       $("#main-header-text").text(`THE TESSERACT - 00:00`);
 
       mmInterval = setInterval(function () {
@@ -347,24 +375,138 @@ $(document).ready(function () {
         let minutes = String(Math.floor(elapsed / 60)).padStart(2, "0");
         let seconds = String(elapsed % 60).padStart(2, "0");
         $("#main-header-text").text(`THE TESSERACT - ${minutes}:${seconds}`);
-        $("#mmtimer").text(`IN QUEUE - ${minutes}:${seconds}`);
+        $("#mm-subtitle").text(`${minutes}:${seconds} · CLICK TO CANCEL`);
       }, 1000);
 
-      // Apply flashing border (smooth zoom-in)
       $("#border-flash").addClass("flashing-border");
+      socket.emit("queue-join", localStorage.getItem("userToken"));
     } else {
-      // Matchmaking turning off
-      $("#enter-matchmaking").removeClass("queue");
-      mm = 0;
-      $("#back-btn").removeClass("no-hover").css("left", "-70px");
-
-      clearInterval(mmInterval);
-      $("#mmtimer").text("ENTER MATCHMAKING");
-      $("#main-header-text").text("THE TESSERACT");
-
-      // Smoothly shrink the border back
-      $("#border-flash").removeClass("flashing-border");
+      leaveQueueUI();
+      socket.emit("queue-leave");
     }
+  });
+
+  socket.on("queue-error", (msg) => {
+    leaveQueueUI();
+    alert(msg);
+  });
+
+  netSession.onMatchFound = function (data) {
+    leaveQueueUI();
+    resetCustomUI();
+    launchGame("the tesseract", {
+      seed: data.seed,
+      netHooks: netSession.hooks(),
+      myIndex: data.youAre,
+      myName: data.youName,
+      myRating: data.youRating,
+      opponent: data.opponent,
+    });
+    // The session needs the live controller to apply server snapshots to.
+    netSession.controller = activeGame;
+  };
+
+  netSession.onOpponentLeft = function () {
+    // Forfeit win; the match-over panel follows from the server's match-over.
+    $("#game-over-reason").text("YOUR OPPONENT DISCONNECTED. YOU WIN BY FORFEIT.");
+  };
+
+  socket.on("match-over", (data) => {
+    // Stash the authoritative result (incl. rating delta) for the panel.
+    window._lastMatchOver = data;
+  });
+
+  // Champion-style round overlay: show the score BIG with the old value,
+  // then punch the winner's digit up by one.
+  window.CubeWarsRoundFX = function (info) {
+    const Sfx = window.CubeArenaRender.Sfx;
+    const meIdx = info.myIndex;
+    const iWon = info.winner === meIdx;
+    const newMine = info.wins[meIdx] || 0;
+    const newFoe = info.wins[1 - meIdx] || 0;
+    // The pre-round score: winner's count minus the point just scored.
+    const oldMine = iWon && info.winner !== -1 ? newMine - 1 : newMine;
+    const oldFoe = !iWon && info.winner !== -1 ? newFoe - 1 : newFoe;
+
+    const ov = $("#round-overlay");
+    $("#ro-label")
+      .text(info.winner === -1 ? "DOUBLE KO" : iWon ? "ROUND WON" : "ROUND LOST")
+      .css("color", info.winner === -1 ? "#ffffff" : iWon ? "#ffd166" : "#ff5e6e");
+    $("#ro-me").text(oldMine).removeClass("ro-punch");
+    $("#ro-foe").text(oldFoe).removeClass("ro-punch");
+    $("#ro-sub").text("");
+    ov.removeClass("active");
+    void ov[0].offsetWidth;
+    ov.addClass("active");
+
+    // Beat 2: the winning digit ticks up with a punch.
+    setTimeout(() => {
+      if (!ov.hasClass("active")) return;
+      const el = iWon ? $("#ro-me") : $("#ro-foe");
+      el.text(iWon ? newMine : newFoe);
+      el.removeClass("ro-punch");
+      void el[0].offsetWidth;
+      el.addClass("ro-punch");
+      const leader = Math.max(newMine, newFoe);
+      if (leader === 2) {
+        $("#ro-sub").text("MATCH POINT");
+        Sfx.play("matchPoint");
+      } else {
+        Sfx.play("pickup", 1.2);
+      }
+    }, 650);
+
+    // Fade out before the next round starts (round pause is 2.4s).
+    setTimeout(() => ov.removeClass("active"), 2050);
+  };
+
+  // Post-match chat: type on the results screen, relayed to your opponent.
+  $("#go-chat-input").on("keydown", function (e) {
+    if (e.key !== "Enter") return;
+    const txt = this.value.trim();
+    if (!txt) return;
+    this.value = "";
+    socket.emit("match-chat", txt);
+    window._chatAppend && window._chatAppend((localStorage.getItem("username") || "me").toLowerCase(), txt, false);
+    e.stopPropagation();
+  });
+  socket.on("match-chat", (m) => {
+    if (window._chatAppend) window._chatAppend(m.from.toLowerCase(), m.text, false);
+  });
+
+  // Profile modal: click the header chip.
+  function openProfile() {
+    socket.emit("get-profile", localStorage.getItem("userToken"), (resp) => {
+      if (resp.error || !resp.data) return;
+      const p = resp.data;
+      const info = calculateRankInfo(p.rating);
+      $("#profile-name").text(p.username.toUpperCase());
+      $("#profile-rank").text(info.division ? info.name + " " + info.division : info.name);
+      $("#profile-rating").text(p.rating);
+      $("#profile-wins").text(p.wins);
+      $("#profile-games").text(p.games);
+      $("#profile-level").text(p.level);
+      $("#profile-joined").text(
+        "JOINED " +
+          (p.createdAt
+            ? new Date(p.createdAt).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }).toUpperCase()
+            : "\u2014")
+      );
+      $("#profile-modal").addClass("active");
+    });
+  }
+  $("#level-indicator").on("click", openProfile);
+  $("#profile-close").on("click", () => $("#profile-modal").removeClass("active"));
+  $("#profile-modal").on("click", function (e) {
+    if (e.target === this) $(this).removeClass("active");
+  });
+
+  // Live presence numbers for the queue screen and the PLAY menu.
+  socket.on("stats", (d) => {
+    $("#tl-queue-count").text(d.queue);
+    $("#tl-game-count").text(d.inGame);
+    $("#tl-online-count").text(d.online);
+    $(".player-count h1").text(d.inGame);
   });
 
   $("#play-btn").on("click", function () {
@@ -378,55 +520,403 @@ $(document).ready(function () {
     $("#main-footer").text("SELECT A GAME MODE!");
   });
 
+  // ===========================================================
+  // SETTINGS — persisted to localStorage, applied live
+  // ===========================================================
+
+  const SETTINGS_KEY = "cw_settings";
+  window.CubeWarsSettings = Object.assign(
+    { sfx: 55, shake: true },
+    JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}")
+  );
+
+  function applySettings() {
+    const s = window.CubeWarsSettings;
+    window.CubeArenaRender.Sfx.volume = s.sfx / 100;
+    // Live-loaded Howls keep their creation volume; refresh them.
+    const sounds = window.CubeArenaRender.Sfx.sounds;
+    for (const k in sounds) {
+      try {
+        sounds[k].volume(s.sfx / 100);
+      } catch (e) {}
+    }
+    $("#set-sfx").val(s.sfx);
+    $("#set-sfx-val").text(s.sfx);
+    $("#set-shake").prop("checked", s.shake);
+    $("#set-shake-val").text(s.shake ? "ON" : "OFF");
+    $("#set-username").text(
+      (localStorage.getItem("username") || "guest").toUpperCase()
+    );
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+  }
+
+  $("#set-sfx").on("input", function () {
+    window.CubeWarsSettings.sfx = +this.value;
+    applySettings();
+  });
+  $("#set-shake").on("change", function () {
+    window.CubeWarsSettings.shake = this.checked;
+    applySettings();
+  });
+  $("#set-logout").on("click", function () {
+    clearUserData();
+    location.reload();
+  });
+  applySettings();
+
+  // ===========================================================
+  // GAME LAUNCH (arena duel: practice vs bot now, versus later)
+  // ===========================================================
+
+  let activeGame = null;
+
+  function showMatchOverPanel(winner, stats) {
+    const myIdx = activeGame ? activeGame.myIndex : 0;
+    const iWon = winner === myIdx;
+    const names = window._matchNames || { me: "YOU", foe: "OPPONENT", net: false };
+    const net = window._lastMatchOver;
+
+    // AUTHORITATIVE stats: online, each client's local sim tracked slightly
+    // different numbers (prediction) — the server's copy is the truth and is
+    // identical on both screens.
+    const authStats = names.net && net && net.stats ? net.stats : stats;
+    const mine = authStats[myIdx] || {};
+    const theirs = authStats[1 - myIdx] || {};
+
+    // Grand finish: jingle + fullscreen colour flash + slamming title.
+    window.CubeArenaRender.Sfx.play(iWon ? "victory" : "defeat");
+    const flash = document.getElementById("game-flash");
+    flash.className = "";
+    void flash.offsetWidth;
+    flash.className = iWon ? "win" : "lose";
+
+    const title = document.getElementById("game-over-title");
+    title.style.animation = "none";
+    void title.offsetWidth;
+    title.style.animation = "";
+    $("#game-over-title")
+      .text(winner === -1 ? "DRAW" : iWon ? "VICTORY" : "DEFEAT")
+      .css("color", iWon ? "#ffd166" : "#ff4d4d");
+
+    // Top bar: mode crumb + player chip (like the league results header).
+    $("#go-topbar-title").text(
+      (names.net ? "THE TESSERACT" : "PRACTICE") + " / RESULTS"
+    );
+    $("#go-chip-name").text(names.me);
+    $("#go-chip-rating").text(
+      names.net && net ? String(net.ratingAfter || 0) : "—"
+    );
+
+    // Score cards: big number is ROUND WINS (first to 3), like a league set
+    // score. Winner card gets the golden glow.
+    const score =
+      names.net && net && net.score
+        ? net.score
+        : activeGame && activeGame.game
+        ? activeGame.game.roundWins
+        : [0, 0];
+    $("#go-me-name").text(names.me);
+    $("#go-foe-name").text(names.foe);
+    $("#go-me-big").text(score[myIdx] || 0).toggleClass("go-big-dim", !iWon);
+    $("#go-foe-big").text(score[1 - myIdx] || 0).toggleClass("go-big-dim", iWon);
+    $(".go-me").toggleClass("go-winner", iWon);
+    $(".go-foe").toggleClass("go-winner", !iWon && winner !== -1);
+
+    // Notable stats, big and labelled, identical metrics on both cards.
+    const statCells = (p) => {
+      const acc = p.shots > 0 ? Math.min(100, Math.round((p.hits / p.shots) * 100)) : 0;
+      return (
+        '<div class="go-stat"><b>' + Math.round(p.dealt || 0) + "</b><label>DMG</label></div>" +
+        '<div class="go-stat"><b>' + (p.hits || 0) + "</b><label>HITS</label></div>" +
+        '<div class="go-stat"><b>' + (p.shots || 0) + "</b><label>SHOTS</label></div>" +
+        '<div class="go-stat"><b>' + acc + "%</b><label>ACC</label></div>"
+      );
+    };
+    $("#go-me-stats").html(statCells(mine));
+    $("#go-foe-stats").html(statCells(theirs));
+
+    // Chat-style match log.
+    const winName = winner === -1 ? null : winner === myIdx ? names.me : names.foe;
+    window._chatAppend = window._chatAppend || function (who, text, isSystem) {
+      $("#go-chat-log").append(
+        '<div class="go-chat-line"><span>' +
+          (isSystem ? "[SYSTEM]" : who) +
+          "</span> <i>" + $("<i>").text(text).html() + "</i></div>"
+      );
+      const log = document.getElementById("go-chat-log");
+      log.scrollTop = log.scrollHeight;
+    };
+    $("#go-chat-log").empty();
+    window._chatAppend(null, "started the game", true);
+    if (net && net.how === "forfeit") {
+      window._chatAppend(null, (iWon ? names.foe : names.me).toLowerCase() + " disconnected", true);
+    } else {
+      window._chatAppend(null, "final score " + (score[myIdx] || 0) + " - " + (score[1 - myIdx] || 0), true);
+    }
+    window._chatAppend(null, "game finished", true);
+    // Chat input only makes sense against a human.
+    $("#go-chat-input").toggle(!!names.net);
+
+    // Standing panel: online only, animated rating count.
+    if (names.net && net && net.ranked !== false && typeof net.ratingAfter === "number") {
+      $("#go-standing").css("visibility", "visible");
+      const from = net.ratingBefore || 0;
+      const to = net.ratingAfter;
+      const delta = net.ratingDelta || 0;
+      $("#go-delta")
+        .text(delta === 0 ? "=" : (delta > 0 ? "\u2197 " : "\u2198 ") + Math.abs(delta))
+        .css("color", delta === 0 ? "#8b93a7" : delta > 0 ? "#ffffff" : "#ff5e6e");
+      const info = calculateRankInfo(to);
+      $("#go-rank").text(info.division ? info.name + " " + info.division : info.name);
+      $("#go-rank-progress").text(
+        info.upper ? "\u2191 " + (info.upper - to) + " TO NEXT" : "MAX RANK"
+      );
+
+      const el = document.getElementById("go-rating");
+      const t0 = performance.now();
+      const dur = 1400;
+      const tick = (now) => {
+        const t = Math.min(1, (now - t0) / dur);
+        const k = 1 - Math.pow(1 - t, 3); // ease-out cubic
+        el.textContent = Math.round(from + (to - from) * k);
+        if (t < 1 && document.getElementById("game-over-panel").classList.contains("active")) {
+          requestAnimationFrame(tick);
+        }
+      };
+      requestAnimationFrame(tick);
+      window._lastMatchOver = null;
+    } else {
+      $("#go-standing").css("visibility", "hidden");
+    }
+
+    $("#game-over-panel").addClass("active");
+  }
+
+  function exitGame() {
+    if (window._gamePingInterval) {
+      clearInterval(window._gamePingInterval);
+      window._gamePingInterval = null;
+    }
+    if (activeGame) {
+      // Abandoning a live online match is a forfeit — the server settles it.
+      if (activeGame.netHooks && activeGame.game && !activeGame.game.over) {
+        socket.emit("match-leave");
+      }
+      activeGame.stop();
+      activeGame = null;
+    }
+    $("#game-over-panel").removeClass("active");
+    $("#match-intro").removeClass("active");
+    $("#big-countdown").removeClass("active punch go");
+    $("#game-screen").removeClass("active");
+    $("#dev-warning, #changelog, #connection-indicator-wrapper").show();
+    // Only the menu comes back — #preload stays hidden, since reaching a game
+    // means the player is already past it.
+    $("#home-container").show();
+  }
+
+  function launchGame(mode, opts) {
+    opts = opts || {};
+    window._lastLaunch = [mode, opts]; // so RESTART replays the full intro
+    // Audio context can only be created after a user gesture, so init here
+    // rather than on page load.
+    window.CubeArenaRender.Sfx.init();
+
+    // Random wallpaper behind the board. Measured mean luminance per image, so
+    // dark art gets shown more strongly and bright art is held back — keeps the
+    // board equally readable whichever one comes up.
+    const WALLPAPER_LUM = {
+      1: 129, 2: 47, 3: 89, 4: 106, 5: 164, 6: 97, 7: 82, 8: 174,
+      9: 110, 10: 144, 11: 145, 12: 94, 13: 126, 14: 73, 15: 105,
+    };
+    const wpIndex = Math.floor(Math.random() * 15) + 1;
+    const wpEl = document.getElementById("game-wallpaper");
+    wpEl.style["background-image"] =
+      'url("assets/art/wallpapers/' + wpIndex + '.jpg")';
+    // Target a consistent perceived brightness of roughly 34 on a 0-255 scale.
+    const lum = WALLPAPER_LUM[wpIndex] || 110;
+    wpEl.style.opacity = Math.max(0.22, Math.min(0.62, 34 / (lum / 10) / 10)).toFixed(3);
+
+    $("#game-over-panel").removeClass("active");
+    $("#game-screen").addClass("active");
+    // Page furniture would collide with the control hints; hide during play.
+    $("#dev-warning, #changelog, #connection-indicator-wrapper").hide();
+    // The overlay is translucent so the wallpaper reads through, which means the
+    // menu underneath must actually be hidden or it bleeds into the board.
+    $("#home-container, #preload").hide();
+
+    if (activeGame) activeGame.stop();
+    activeGame = new window.CubeArenaController.ArenaController({
+      stage: document.getElementById("game-stage"),
+      mode: mode,
+      bot: opts.bot,
+      myIndex: opts.myIndex || 0,
+      netHooks: opts.netHooks || null,
+      onExit: exitGame,
+      onMatchOver: showMatchOverPanel,
+      onRestart: restartGame,
+    });
+    activeGame.start(opts.seed);
+
+    // ---- Match presentation: MATCH FOUND cards -> 3-2-1 -> GO -------------
+    const Sfx = window.CubeArenaRender.Sfx;
+    // Online: server-authoritative name (localStorage is shared across tabs).
+    const meName = (
+      opts.myName ||
+      localStorage.getItem("username") ||
+      "YOU"
+    ).toUpperCase();
+    const isNet = !!opts.netHooks;
+    $("#mi-found").text(isNet ? "MATCH FOUND" : "PRACTICE MATCH");
+    $("#mi-p1name").text(meName);
+    $("#mi-p1sub").text(isNet ? "RATING " + (opts.myRating || 0) : "YOU");
+    $("#mi-p2name").text(
+      isNet && opts.opponent ? opts.opponent.username.toUpperCase() : "BOT"
+    );
+    $("#mi-p2sub").text(
+      isNet && opts.opponent ? "RATING " + (opts.opponent.rating || 0) : "TRAINING DUMMY"
+    );
+
+    // Random act-intro stinger, like a game-show cold open.
+    Sfx.play("intro" + (1 + Math.floor(Math.random() * 3)));
+    $("#match-intro").addClass("active");
+
+    setTimeout(() => {
+      $("#match-intro").removeClass("active");
+      if (!activeGame) return; // player exited during the intro
+
+      // Big DOM countdown. 700ms per beat; sim + server both start at GO
+      // (server waits 4.6s total from match-found).
+      Sfx.play("countdown");
+      const bc = document.getElementById("big-countdown");
+      const $bc = $(bc);
+      $bc.addClass("active");
+      const steps = ["3", "2", "1", "GO!"];
+      let i = 0;
+      const beat = () => {
+        if (!activeGame) return;
+        $bc.text(steps[i]);
+        $bc.toggleClass("go", steps[i] === "GO!");
+        // Retrigger the punch animation.
+        $bc.removeClass("punch");
+        void bc.offsetWidth;
+        $bc.addClass("punch");
+        if (steps[i] === "GO!") {
+          Sfx.play("matchBegin");
+          activeGame.unfreeze();
+          setTimeout(() => $bc.removeClass("active punch go"), 700);
+        } else {
+          i++;
+          setTimeout(beat, 700);
+        }
+      };
+      beat();
+    }, 2400);
+
+    // Live ping readout in the arena HUD. Local play just shows "LOCAL".
+    if (window._gamePingInterval) clearInterval(window._gamePingInterval);
+    if (opts.netHooks) {
+      window._gamePingInterval = setInterval(() => {
+        const t0 = Date.now();
+        socket.emit("ping-check", () => {
+          if (activeGame && activeGame.renderer) {
+            activeGame.renderer.pingMs = Date.now() - t0;
+          }
+        });
+      }, 2000);
+    }
+
+
+    // Name the HP bars. Cube 0 is always the left bar, so "YOU" follows index.
+    const r = activeGame.renderer;
+    // Left bar is always the local player; the renderer mirrors the world so
+    // this holds for both sides of an online match.
+    const foeName = opts.opponent ? opts.opponent.username.toUpperCase() : "BOT";
+    r.p1Name.text = meName;
+    r.p2Name.text = foeName;
+    window._matchNames = { me: meName, foe: foeName, net: isNet };
+  }
+
+  $("#zen-btn").on("click", function () {
+    launchGame("practice");
+  });
+
+  // NEXT: practice replays; online returns to the queue page.
+  $("#go-next").on("click", function () {
+    if (activeGame && !activeGame.netHooks) restartGame();
+    else exitGame();
+  });
+
+  function restartGame() {
+    if (!activeGame || !window._lastLaunch) return;
+    $("#game-over-panel").removeClass("active");
+    // Full relaunch so the intro/countdown presentation replays and a fresh
+    // seed generates a fresh map.
+    launchGame(window._lastLaunch[0], Object.assign({}, window._lastLaunch[1], { seed: undefined }));
+  }
+
+  // Exposed so multiplayer (and the console) can drive a game directly.
+  window.CubeWarsLaunch = launchGame;
+  window.CubeWarsExit = exitGame;
+  window.CubeWarsActive = function () {
+    return activeGame;
+  };
+
+  // ---- CUSTOM GAMES (room codes) ----
+  $("#custom-btn").on("click", function () {
+    $("#back-btn").removeClass("no-hover").css("left", "-70px");
+    $(".tabpage").css("right", "-85vw").removeClass("visible");
+    $("#tabpage-4").css("right", "-0vw").addClass("visible");
+    pg = 4;
+    $("#main-header-text").text("CUSTOM GAME");
+    $("#main-footer").text("PLAY A FRIEND WITH A ROOM CODE");
+  });
+
+  function resetCustomUI() {
+    $("#cg-hosting").hide();
+    $("#cg-create-wrap").show();
+    $("#cg-error").text("");
+    $("#cg-code").html("&mdash;");
+  }
+  resetCustomUI();
+
+  $("#cg-create").on("click", function () {
+    socket.emit("custom-create", localStorage.getItem("userToken"), (resp) => {
+      if (resp.error) return $("#cg-error").text(resp.error);
+      $("#cg-create-wrap").hide();
+      $("#cg-hosting").show();
+      $("#cg-code").text(resp.code);
+    });
+  });
+
+  $("#cg-cancel").on("click", function () {
+    socket.emit("custom-cancel");
+    resetCustomUI();
+  });
+
+  $("#cg-join").on("click", function () {
+    const code = $("#cg-join-code").val().toUpperCase().trim();
+    if (code.length < 4) return $("#cg-error").text("Enter the 5-character code.");
+    socket.emit("custom-join", { token: localStorage.getItem("userToken"), code: code }, (resp) => {
+      if (resp.error) return $("#cg-error").text(resp.error);
+      $("#cg-error").text("");
+      // match-found arrives next and launches the game.
+    });
+  });
+  $("#cg-join-code").on("keydown", function (e) {
+    if (e.key === "Enter") $("#cg-join").click();
+    e.stopPropagation();
+  });
+
   $("#settings-btn").on("click", function () {
     $("#back-btn").removeClass("no-hover").css("left", "-70px");
-    $("#tabpage-1").css("right", "-85vw");
+    // Hide every page first — settings can be reached with any page open.
+    $(".tabpage").css("right", "-85vw").removeClass("visible");
     $("#tabpage-7").css("right", "-0vw");
-    $("#tabpage-1").removeClass("visible");
     $("#tabpage-7").addClass("visible");
     pg = 7;
     $("#main-header-text").text("SETTINGS");
     $("#main-footer").text("TWEAK YOUR EXPERIENCE");
-  });
-
-  function updateKeyDisplay(keyMap, tick) {
-    const activeKeys = Object.keys(keyMap || {}).filter((k) => keyMap[k]);
-    keyDisplay.textContent =
-      `🎮 Server Tick: ${tick}\n` +
-      `🔑 Keys Recognized by Server: ${JSON.stringify(activeKeys)}`;
-  }
-
-  socket.on("requestKey", (data, cb) => {
-    cb({
-      keys: { ...pressedKeys },
-      tick: data.tick,
-    });
-  });
-
-  socket.on("serverState", (data) => {
-    if (data && data.keys) {
-      updateKeyDisplay(data.keys, data.tick);
-    }
-  });
-
-  const keyDisplay = document.getElementById("keyDisplay");
-
-  document.addEventListener("keydown", (e) => {
-    if (!sendingInputs) return;
-    const key = e.key.toLowerCase();
-    if (!pressedKeys[key]) {
-      pressedKeys[key] = true;
-      $("#joinBtn").text(JSON.stringify(pressedKeys));
-    }
-  });
-
-  document.addEventListener("keyup", (e) => {
-    if (!sendingInputs) return;
-    const key = e.key.toLowerCase();
-    if (pressedKeys[key]) {
-      delete pressedKeys[key];
-      $("#joinBtn").text(JSON.stringify(pressedKeys));
-    }
   });
 
   $("#ranked-btn").on("click", function () {
@@ -443,11 +933,13 @@ $(document).ready(function () {
           return;
         }
 
-        sendingInputs = true;
-        socket.emit("joinPlayers");
-
         const rating = response.data.rankedRating || 0;
         const gamesPlayed = response.data.rankedGamesPlayed || 0;
+        const wins = response.data.wins || 0;
+        $("#tl-substats").text(
+          "RATING: " + rating + " · GAMES WON: " + wins + " / " + gamesPlayed + " (" +
+            (gamesPlayed ? Math.round((wins / gamesPlayed) * 100) : 0) + "%)"
+        );
 
         const rankInfo = calculateRankInfo(rating);
 
@@ -473,9 +965,9 @@ $(document).ready(function () {
         $("#rank-label").text(`RANK: ${rankText}`);
 
         // Update thresholds
-        $("#threshold-low").text(`${rankInfo.lower}m`);
+        $("#threshold-low").text(`${rankInfo.lower}`);
         $("#threshold-high").text(
-          rankInfo.upper ? `${rankInfo.upper}m` : "MAX"
+          rankInfo.upper ? `${rankInfo.upper}` : "MAX"
         );
 
         // Update progress bar
@@ -488,7 +980,7 @@ $(document).ready(function () {
         // Update progress text
         const nextDivision = getNextDivision(rankInfo);
         const progressText = rankInfo.upper
-          ? `${rankInfo.upper - rating}m TO ${nextDivision}`
+          ? `${rankInfo.upper - rating} TO ${nextDivision}`
           : "MAXED OUT";
         $("#progress-label").text(progressText);
 
@@ -532,9 +1024,8 @@ $(document).ready(function () {
 
   $("#about-btn").on("click", function () {
     $("#back-btn").removeClass("no-hover").css("left", "-70px");
-    $("#tabpage-1").css("right", "-85vw");
+    $(".tabpage").css("right", "-85vw").removeClass("visible");
     $("#tabpage-8").css("right", "-0vw");
-    $("#tabpage-1").removeClass("visible");
     $("#tabpage-8").addClass("visible");
     pg = 8;
     $("#tabpage-8").scrollTop(0);
@@ -573,6 +1064,15 @@ $(document).ready(function () {
       $("#main-header-text").text("HOME");
       $("#main-footer").text("CUBE WARS HOME");
     }
+    if (pg === 4) {
+      socket.emit("custom-cancel");
+      resetCustomUI();
+      $("#tabpage-4").css("right", "-85vw").removeClass("visible");
+      $("#tabpage-2").css("right", "0vw").addClass("visible");
+      pg = 2;
+      $("#main-header-text").text("PLAY");
+      $("#main-footer").text("SELECT A GAME MODE!");
+    }
     if (pg === 3 && mm == 0) {
       $("#tabpage-3").css("right", "-85vw");
       $("#tabpage-2").css("right", "0vw");
@@ -581,7 +1081,6 @@ $(document).ready(function () {
       pg = 2;
       $("#main-header-text").text("PLAY");
       $("#main-footer").text("SELECT A GAME MODE!");
-      socket.emit("leavePlayers");
     }
   });
 

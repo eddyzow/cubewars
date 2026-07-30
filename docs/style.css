@@ -930,7 +930,11 @@ hr {
   justify-content: center;
   align-items: center;
   z-index: 99;
-  transition: all 0.5s cubic-bezier(0.2, 0.8, 0.75, 1);
+  /* `transition: all` on a fullscreen fixed layer forces the compositor to
+     re-rasterize everything each frame and was a source of screen-wide
+     flashing. Transition only what actually changes. */
+  transition: opacity 0.5s cubic-bezier(0.2, 0.8, 0.75, 1),
+    visibility 0.5s cubic-bezier(0.2, 0.8, 0.75, 1);
 }
 
 #cube-3d-wrapper {
@@ -947,6 +951,14 @@ hr {
   height: 100px;
   position: relative;
   transform-style: preserve-3d;
+  /* Only spins while the modal is actually open — an infinitely animating 3D
+     transform inside a hidden fullscreen layer kept the GPU compositing it,
+     which is what produced the strange full-screen flashes. */
+  animation: none;
+  will-change: transform;
+}
+
+#cube-modal.open .cube-3d {
   animation: spinCube 3s ease infinite;
 }
 
@@ -957,6 +969,8 @@ hr {
   background: rgb(189, 189, 189);
   opacity: 0.5;
   border: 4px solid #494949;
+  /* Translucent intersecting faces without this z-fight and shimmer. */
+  backface-visibility: hidden;
 }
 
 .front {
@@ -1427,3 +1441,1817 @@ hr {
 }
 
 
+
+
+/* ===========================================================
+   GAME SCREEN — fullscreen overlay for ZEN / versus play.
+   Deliberately translucent so #wallpaper still reads through,
+   matching the rest of the UI.
+   =========================================================== */
+
+#game-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  /* Opaque base so the menu underneath never bleeds through. The wallpaper
+     layer sits above this and provides the actual backdrop. */
+  background: #07080b;
+  font-family: "IBM Plex Sans", sans-serif;
+}
+
+#game-screen.active {
+  display: flex;
+}
+
+/* Wallpaper backdrop. Brighter than the menu's 0.15 because the board sits on
+   top of it and needs the contrast; a dark scrim keeps blocks legible. */
+#game-wallpaper {
+  position: absolute;
+  inset: 0;
+  background-position: center;
+  background-size: cover;
+  opacity: 0.32;
+  pointer-events: none;
+}
+
+/* Vignette over the wallpaper: keeps the centre readable and the edges moody. */
+#game-wallpaper::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at 50% 45%,
+    rgba(7, 8, 11, 0.55) 0%,
+    rgba(7, 8, 11, 0.8) 55%,
+    rgba(7, 8, 11, 0.95) 100%
+  );
+}
+
+#game-topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 26px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(8, 9, 12, 0.6);
+  z-index: 3;
+}
+
+#game-mode-label {
+  font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 6px;
+  color: #fff;
+  text-shadow: 0 0 14px rgba(255, 255, 255, 0.25);
+}
+
+#game-topbar-right {
+  display: flex;
+  gap: 10px;
+}
+
+/* Buttons echo the menu's outset-border + glow treatment. */
+.game-btn {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.4px;
+  color: #fff;
+  background-color: rgb(31, 58, 145);
+  border: 3px outset rgb(31, 58, 145);
+  border-radius: 2px;
+  padding: 9px 15px;
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.15, 0.25, 0.4, 1);
+}
+
+.game-btn:hover {
+  filter: brightness(1.35);
+}
+
+.game-btn:active {
+  transform: translateY(1px);
+}
+
+#game-sim-btn {
+  background-color: rgb(150, 92, 16);
+  border-color: rgb(150, 92, 16);
+}
+
+.game-btn-exit {
+  background-color: rgb(130, 40, 52);
+  border-color: rgb(130, 40, 52);
+}
+
+#game-stage {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Keeps the board optically centred between topbar and help strip. */
+  margin-top: 26px;
+}
+
+#game-stage canvas {
+  display: block;
+  /* Scale down on small windows. Pixi sets an inline height, so force it back
+     to auto or the canvas distorts; the controller maps mouse coords through
+     getBoundingClientRect, so scaling stays accurate. */
+  max-width: 96vw;
+  height: auto !important;
+}
+
+#game-help {
+  position: absolute;
+  bottom: 10px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10.5px;
+  letter-spacing: 1px;
+  color: #6b7285;
+  z-index: 3;
+}
+
+#game-help b {
+  color: #a9b2c6;
+}
+
+/* Game-over panel */
+#game-over-panel {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: rgba(8, 9, 12, 0.9);
+  backdrop-filter: blur(5px);
+  z-index: 5;
+}
+
+#game-over-panel.active {
+  display: flex;
+}
+
+#game-over-title {
+  font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+  font-size: 60px;
+  font-weight: 700;
+  letter-spacing: 7px;
+  color: #ff4d4d;
+  text-shadow: 0 0 24px rgba(255, 77, 77, 0.4);
+  margin: 0;
+}
+
+#game-over-reason {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11.5px;
+  letter-spacing: 1.5px;
+  color: #8b93a7;
+  margin: 0 0 12px 0;
+  text-align: center;
+  max-width: 440px;
+  line-height: 1.7;
+}
+
+#game-over-stats {
+  display: flex;
+  gap: 38px;
+  margin-bottom: 20px;
+}
+
+#game-over-stats .gos {
+  text-align: center;
+}
+
+#game-over-stats .gos-label {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 9.5px;
+  letter-spacing: 1.4px;
+  color: #5d6478;
+  margin-bottom: 5px;
+}
+
+#game-over-stats .gos-value {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 27px;
+  font-weight: 700;
+  color: #fff;
+}
+
+@media (max-width: 1000px) {
+  #game-help { gap: 12px; font-size: 9px; }
+  #game-topbar { padding: 0 12px; }
+  #game-mode-label { font-size: 17px; letter-spacing: 3px; }
+}
+
+/* ===========================================================
+   MATCH PRESENTATION — matchup intro, big countdown, results
+   =========================================================== */
+
+#match-intro {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  background: rgba(5, 6, 9, 0.9);
+  overflow: hidden;
+}
+
+#match-intro.active {
+  display: flex;
+}
+
+#mi-found {
+  font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+  font-size: 64px;
+  font-weight: 700;
+  letter-spacing: 14px;
+  color: #fff;
+  text-shadow: 0 0 30px rgba(255, 255, 255, 0.35);
+  animation: mi-found-in 0.55s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+
+@keyframes mi-found-in {
+  0% { transform: scale(2.6); opacity: 0; filter: blur(8px); }
+  100% { transform: scale(1); opacity: 1; filter: blur(0); }
+}
+
+#mi-cards {
+  display: flex;
+  align-items: center;
+  gap: 56px;
+}
+
+.mi-card {
+  min-width: 320px;
+  padding: 34px 44px;
+  text-align: center;
+  border-radius: 4px;
+}
+
+.mi-card h2 {
+  font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+  font-size: 44px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  margin: 0 0 6px 0;
+  color: #fff;
+}
+
+.mi-card p {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 14px;
+  letter-spacing: 2px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.mi-left {
+  background: linear-gradient(135deg, rgb(28, 58, 130), rgb(64, 120, 230));
+  border: 4px outset rgb(43, 84, 176);
+  box-shadow: 0 0 34px rgba(79, 140, 255, 0.45);
+  animation: mi-slide-left 0.5s 0.35s cubic-bezier(0.2, 1.2, 0.35, 1) both;
+}
+
+.mi-right {
+  background: linear-gradient(225deg, rgb(140, 34, 52), rgb(226, 78, 96));
+  border: 4px outset rgb(176, 52, 66);
+  box-shadow: 0 0 34px rgba(255, 94, 110, 0.45);
+  animation: mi-slide-right 0.5s 0.35s cubic-bezier(0.2, 1.2, 0.35, 1) both;
+}
+
+@keyframes mi-slide-left {
+  0% { transform: translateX(-60vw) skewX(6deg); opacity: 0; }
+  100% { transform: translateX(0) skewX(0); opacity: 1; }
+}
+
+@keyframes mi-slide-right {
+  0% { transform: translateX(60vw) skewX(-6deg); opacity: 0; }
+  100% { transform: translateX(0) skewX(0); opacity: 1; }
+}
+
+#mi-vs {
+  font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+  font-size: 76px;
+  font-weight: 700;
+  font-style: italic;
+  color: #ffd166;
+  text-shadow: 0 0 26px rgba(255, 209, 102, 0.6);
+  animation: mi-vs-in 0.4s 0.7s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+
+@keyframes mi-vs-in {
+  0% { transform: scale(0) rotate(-18deg); opacity: 0; }
+  100% { transform: scale(1) rotate(-4deg); opacity: 1; }
+}
+
+/* Big 3-2-1 countdown */
+#big-countdown {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+  font-size: 240px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 0 60px rgba(255, 255, 255, 0.5), 0 6px 0 rgba(0, 0, 0, 0.55);
+}
+
+#big-countdown.active {
+  display: flex;
+}
+
+#big-countdown.go {
+  color: #ffd166;
+  text-shadow: 0 0 80px rgba(255, 209, 102, 0.8), 0 6px 0 rgba(0, 0, 0, 0.55);
+}
+
+#big-countdown.punch {
+  animation: cd-punch 0.68s cubic-bezier(0.15, 1.2, 0.3, 1) both;
+}
+
+@keyframes cd-punch {
+  0% { transform: scale(2.4); opacity: 0; }
+  18% { transform: scale(1); opacity: 1; }
+  80% { transform: scale(0.96); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0; }
+}
+
+/* Result flash + grand title */
+#game-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  opacity: 0;
+}
+
+#game-flash.win {
+  background: radial-gradient(circle, rgba(255, 209, 102, 0.55), transparent 70%);
+  animation: flash-out 1.1s ease-out both;
+}
+
+#game-flash.lose {
+  background: radial-gradient(circle, rgba(255, 60, 60, 0.5), transparent 70%);
+  animation: flash-out 1.1s ease-out both;
+}
+
+@keyframes flash-out {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+#game-over-title {
+  animation: title-slam 0.6s cubic-bezier(0.15, 1.3, 0.3, 1) both;
+}
+
+@keyframes title-slam {
+  0% { transform: scale(3.2) rotate(-3deg); opacity: 0; filter: blur(10px); }
+  55% { transform: scale(0.94) rotate(0); opacity: 1; filter: blur(0); }
+  75% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+
+#game-over-panel.active #game-over-stats,
+#game-over-panel.active button {
+  animation: rise-in 0.45s 0.5s ease-out both;
+}
+
+@keyframes rise-in {
+  0% { transform: translateY(26px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+/* ===========================================================
+   SETTINGS PAGE
+   =========================================================== */
+
+.settings-card {
+  width: min(720px, 80vw);
+  background: rgba(10, 12, 17, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  padding: 26px 34px;
+}
+
+.settings-card h2 {
+  font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: #fff;
+  margin: 0 0 18px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 10px;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 10px 0;
+}
+
+.settings-row label {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12px;
+  letter-spacing: 1.6px;
+  color: #9aa3b8;
+  min-width: 170px;
+}
+
+.settings-row input[type="range"] {
+  flex: 1;
+  accent-color: rgb(64, 120, 230);
+  height: 6px;
+  cursor: pointer;
+}
+
+.settings-row input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: rgb(64, 120, 230);
+  cursor: pointer;
+}
+
+.settings-val {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  min-width: 42px;
+  text-align: right;
+}
+
+.settings-keys-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: #6b7285;
+}
+
+.settings-keys-list b {
+  color: #dfe6f5;
+}
+
+/* ============================================================
+   UI 2.0 — full restyle. Keeps IBM Plex + random wallpapers;
+   everything else is rebuilt: flat dark glass, sharp condensed
+   headlines, one accent per action. Overrides earlier rules.
+   ============================================================ */
+
+/* ---- vibrant colour-shifting glow behind the arena ---- */
+#game-stage {
+  position: relative;
+}
+
+#game-stage::before {
+  content: "";
+  position: absolute;
+  inset: -14px;
+  z-index: -1;
+  border-radius: 12px;
+  background: linear-gradient(
+    115deg,
+    #3b62ff,
+    #9b3bff,
+    #ff3b8d,
+    #ff9a3b,
+    #3bffc8,
+    #3b62ff
+  );
+  background-size: 400% 400%;
+  animation: arena-glow 16s linear infinite;
+  filter: blur(26px) saturate(1.4);
+  opacity: 0.5;
+}
+
+@keyframes arena-glow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ---- main header: slim bar ---- */
+#main-header {
+  height: 72px;
+  background: rgba(8, 10, 15, 0.82);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 1.6em;
+  color: #fff;
+  align-items: center;
+  padding: 0 28px;
+}
+
+.header-title {
+  font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+  font-weight: 700;
+  letter-spacing: 6px;
+}
+
+.tabpage {
+  top: 72px;
+  padding-top: 60px;
+  height: calc(100vh - 200px);
+}
+
+/* ---- menu cards ---- */
+.tab-button {
+  height: auto;
+  min-height: 64px;
+  padding: 26px 30px;
+  border-radius: 3px;
+  background: rgba(10, 12, 18, 0.78) !important;
+  border: 1px solid rgba(255, 255, 255, 0.09) !important;
+  border-left: 5px solid var(--accent, #4f8cff) !important;
+  box-shadow: none !important;
+  transition: all 0.16s cubic-bezier(0.15, 0.65, 0.4, 1);
+}
+
+.tab-button:hover {
+  filter: none;
+  background: rgba(22, 27, 38, 0.92) !important;
+  border-left-width: 10px !important;
+}
+
+.tab-button h1 {
+  font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+  font-weight: 700;
+  letter-spacing: 3px;
+  margin: 0 0 6px 0;
+}
+
+.tab-button p {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12px;
+  letter-spacing: 1.4px;
+  color: #8b93a7;
+  margin: 0;
+}
+
+#play-btn { --accent: #ffa63d; }
+#settings-btn { --accent: #4f8cff; }
+#about-btn { --accent: #9b6bff; }
+#ranked-btn { --accent: #ff5e6e; }
+#zen-btn { --accent: #52d16a; }
+#custom-btn { --accent: #49dcf0; }
+#public-btn { --accent: #ffe066; }
+
+/* ---- back button ---- */
+.back-button {
+  background: rgba(10, 12, 18, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+  font-family: "IBM Plex Mono", monospace;
+  letter-spacing: 2px;
+}
+
+/* ---- footer ---- */
+#main-footer {
+  background: rgba(8, 10, 15, 0.85);
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  font-family: "IBM Plex Mono", monospace;
+  letter-spacing: 2px;
+  font-size: 0.9em;
+  color: #8b93a7;
+}
+
+/* ---- Tesseract queue page (TETR.IO league vibes) ---- */
+.tl-header {
+  display: flex;
+  gap: 34px;
+  align-items: center;
+  width: min(860px, 82vw);
+  background: rgba(10, 12, 18, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-left: 5px solid #ff5e6e;
+  border-radius: 3px;
+  padding: 26px 34px;
+}
+
+.tl-logo {
+  width: 110px !important;
+  margin: 0 !important;
+  animation: none !important;
+  filter: drop-shadow(0 0 14px rgba(255, 94, 110, 0.5)) !important;
+}
+
+.tl-header-text { flex: 1; }
+
+.tl-rating-line {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+#meter-rating {
+  font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+  font-size: 64px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 0 22px rgba(255, 255, 255, 0.35);
+  line-height: 1;
+}
+
+.tl-unit {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 22px;
+  color: #8b93a7;
+}
+
+.tl-rank-chip {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #ffd166;
+  border: 1px solid rgba(255, 209, 102, 0.5);
+  border-radius: 3px;
+  padding: 5px 12px;
+  margin-left: 10px;
+}
+
+.tl-substats {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12.5px;
+  letter-spacing: 1.6px;
+  color: #8b93a7;
+  margin: 10px 0 14px 0;
+}
+
+.tl-progress .rating-bar-outer {
+  height: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 3px;
+  background: #14161d;
+}
+
+.tl-progress-label {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 1.6px;
+  color: #f4c066;
+  margin-bottom: 6px;
+}
+
+.thresholds {
+  display: flex;
+  justify-content: space-between;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10.5px;
+  color: #5d6478;
+  margin-top: 4px;
+}
+
+.tl-live {
+  display: flex;
+  gap: 16px;
+  width: min(860px, 82vw);
+}
+
+.tl-live-num {
+  flex: 1;
+  text-align: center;
+  background: rgba(10, 12, 18, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 3px;
+  padding: 18px 0 14px 0;
+}
+
+.tl-live-num span {
+  font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+  font-size: 44px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+}
+
+.tl-live-num label {
+  display: block;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10.5px;
+  letter-spacing: 2px;
+  color: #8b93a7;
+  margin-top: 6px;
+}
+
+#enter-matchmaking {
+  width: min(860px, 82vw);
+  box-sizing: border-box;
+  text-align: center;
+  background: linear-gradient(180deg, rgba(150, 32, 46, 0.92), rgba(96, 18, 28, 0.92));
+  border: 1px solid rgba(255, 94, 110, 0.5);
+  border-radius: 3px;
+  padding: 26px 0;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+#enter-matchmaking:hover { filter: brightness(1.25); }
+
+#enter-matchmaking h1 {
+  font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: 6px;
+  margin: 0 0 6px 0;
+  color: #fff;
+}
+
+#enter-matchmaking h4 {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10.5px;
+  letter-spacing: 2px;
+  color: rgba(255, 255, 255, 0.65);
+  margin: 0;
+  font-weight: 400;
+}
+
+#enter-matchmaking.queue {
+  animation: mm-pulse 1.6s ease infinite;
+  border-width: 2px;
+}
+
+@keyframes mm-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 60, 60, 0.55); }
+  50% { box-shadow: 0 0 34px 6px rgba(255, 60, 60, 0.25); }
+}
+
+.tl-how {
+  width: min(860px, 82vw);
+  box-sizing: border-box;
+  background: rgba(10, 12, 18, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 3px;
+  padding: 24px 30px;
+}
+
+.tl-how h2 {
+  font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+  letter-spacing: 3px;
+  margin: 0 0 10px 0;
+}
+
+.tl-how p {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12px;
+  letter-spacing: 1px;
+  line-height: 1.8;
+  color: #8b93a7;
+  margin: 0;
+}
+
+/* ---- TETR.IO-style results panel ---- */
+#game-over-panel {
+  gap: 20px;
+}
+
+#go-cards {
+  display: flex;
+  align-items: stretch;
+  gap: 26px;
+}
+
+.go-card {
+  min-width: 270px;
+  padding: 22px 34px;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.go-me {
+  background: linear-gradient(135deg, rgba(23, 47, 105, 0.95), rgba(52, 98, 190, 0.9));
+  border: 1px solid rgba(120, 165, 255, 0.65);
+  box-shadow: 0 0 30px rgba(79, 140, 255, 0.35);
+  animation: mi-slide-left 0.45s 0.15s cubic-bezier(0.2, 1.2, 0.35, 1) both;
+}
+
+.go-foe {
+  background: linear-gradient(225deg, rgba(112, 26, 40, 0.95), rgba(190, 62, 78, 0.9));
+  border: 1px solid rgba(255, 130, 142, 0.6);
+  box-shadow: 0 0 30px rgba(255, 94, 110, 0.3);
+  animation: mi-slide-right 0.45s 0.15s cubic-bezier(0.2, 1.2, 0.35, 1) both;
+}
+
+.go-card-name {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 13px;
+  letter-spacing: 2px;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0 0 4px 0;
+}
+
+.go-card-big {
+  font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+  font-size: 74px;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 0 18px rgba(255, 255, 255, 0.35);
+}
+
+.go-card-sub {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10.5px;
+  letter-spacing: 1.4px;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 8px 0 0 0;
+}
+
+#go-vs {
+  align-self: center;
+  font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+  font-size: 40px;
+  font-weight: 700;
+  font-style: italic;
+  color: #ffd166;
+  text-shadow: 0 0 18px rgba(255, 209, 102, 0.5);
+}
+
+#go-standing {
+  text-align: center;
+  animation: rise-in 0.5s 0.55s ease-out both;
+}
+
+.go-standing-label {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: #8b93a7;
+  margin: 0 0 4px 0;
+}
+
+.go-standing-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+}
+
+#go-rating {
+  font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+  font-size: 84px;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 0 34px rgba(255, 255, 255, 0.45);
+}
+
+.go-rating-unit {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 26px;
+  color: #8b93a7;
+}
+
+.go-delta {
+  font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+  font-size: 34px;
+  font-weight: 700;
+  margin-left: 10px;
+  text-shadow: 0 0 16px currentColor;
+}
+
+.go-rank {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: #ffd166;
+  margin: 8px 0 0 0;
+}
+
+#go-buttons {
+  display: flex;
+  gap: 12px;
+  animation: rise-in 0.45s 0.7s ease-out both;
+}
+
+/* ============================================================
+   UI 3.0 — faithful league-style screens + full-bleed menus.
+   ============================================================ */
+
+/* Ping chip: tucked just below the header on the right — clear of both the
+   page title (left) and the user chip (top-right). */
+#connection-indicator-wrapper {
+  top: 80px;
+  left: auto;
+  right: 16px;
+  font-size: 12px;
+  opacity: 0.85;
+  background: rgba(8, 10, 15, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  padding: 5px 10px;
+}
+
+/* ---------- RESULTS (league results layout) ---------- */
+#game-over-panel {
+  justify-content: flex-start;
+  gap: 0;
+  background: rgba(6, 6, 4, 0.96);
+  padding: 0;
+}
+
+.go-topbar {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 34px;
+  background: linear-gradient(180deg, rgba(122, 96, 22, 0.55), rgba(58, 46, 10, 0.55));
+  border-bottom: 1px solid rgba(255, 209, 102, 0.35);
+}
+
+.go-topbar-title {
+  font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 5px;
+  color: #ffd166;
+  text-shadow: 0 0 14px rgba(255, 209, 102, 0.4);
+}
+
+.go-topbar-chip {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 13px;
+  letter-spacing: 1.5px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+  padding: 8px 14px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.go-chip-rating {
+  color: #ffd166;
+  font-weight: 700;
+}
+
+#game-over-panel #game-over-title {
+  font-size: 88px;
+  letter-spacing: 12px;
+  margin: 26px 0 22px 0;
+}
+
+#game-over-reason { display: none; } /* the chat log tells the story */
+
+#go-cards {
+  width: min(1240px, 92vw);
+  display: flex;
+  align-items: stretch;
+  gap: 22px;
+}
+
+.go-card {
+  flex: 1;
+  min-width: 0;
+  padding: 20px 30px 16px 30px;
+  border-radius: 4px;
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+}
+
+.go-me {
+  background: linear-gradient(115deg, rgba(17, 34, 76, 0.95), rgba(38, 74, 150, 0.85));
+  border: 2px solid rgba(120, 165, 255, 0.75);
+  box-shadow: 0 0 26px rgba(79, 140, 255, 0.28);
+  animation: none;
+}
+
+.go-foe {
+  background: linear-gradient(245deg, rgba(70, 16, 25, 0.95), rgba(130, 40, 54, 0.8));
+  border: 2px solid rgba(255, 130, 142, 0.45);
+  box-shadow: none;
+  animation: none;
+}
+
+.go-card-name {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  color: #fff;
+  margin: 0;
+}
+
+.go-foe .go-card-name { color: rgba(255, 255, 255, 0.55); }
+
+.go-card-big {
+  font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+  font-size: 110px;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 0 22px rgba(255, 255, 255, 0.4);
+  margin: 4px 0 6px 0;
+}
+
+.go-big-dim {
+  color: #6a6f7c !important;
+  text-shadow: none !important;
+}
+
+.go-card-sub {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.6px;
+  margin: auto 0 0 0;
+  text-align: left;
+}
+
+.go-me .go-card-sub { color: #7aa5ff; }
+.go-foe .go-card-sub { color: #ff8a95; }
+
+#go-vs {
+  align-self: center;
+  font-size: 44px;
+}
+
+#go-lower {
+  width: min(1240px, 92vw);
+  display: flex;
+  gap: 22px;
+  margin-top: 22px;
+  flex: 1;
+  min-height: 0;
+}
+
+#go-chat {
+  flex: 1;
+  background: rgba(10, 10, 8, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 18px 24px;
+  text-align: left;
+  overflow: hidden;
+}
+
+.go-chat-title {
+  font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: #fff;
+  margin: 0 0 10px 0;
+}
+
+.go-chat-line {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12.5px;
+  color: #9aa3b8;
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.go-chat-line span { color: #5d6478; }
+.go-chat-line i { font-style: italic; }
+
+#go-standing {
+  flex: 1;
+  background: rgba(10, 10, 8, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 18px 26px;
+  text-align: right;
+  animation: none;
+}
+
+.go-standing-label {
+  font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: #fff;
+  margin: 0 0 16px 0;
+}
+
+.go-standing-line { justify-content: flex-end; }
+
+#go-rating {
+  font-size: 108px;
+  text-shadow: 0 0 40px rgba(255, 255, 255, 0.55);
+}
+
+.go-delta {
+  font-size: 44px;
+  color: #fff;
+}
+
+.go-rank-line {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.go-rank-chip {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #ffd166;
+  background: rgba(0, 0, 0, 0.55);
+  border-radius: 3px;
+  padding: 8px 18px;
+  clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+}
+
+.go-rank-progress {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 15px;
+  color: #9aa3b8;
+}
+
+.go-bottombar {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 34px;
+  background: linear-gradient(0deg, rgba(122, 96, 22, 0.5), rgba(58, 46, 10, 0.45));
+  border-top: 1px solid rgba(255, 209, 102, 0.3);
+}
+
+.go-bottom-note {
+  font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: #ffd166;
+}
+
+.go-next-btn {
+  font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: #ffd166;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 209, 102, 0.5);
+  border-radius: 3px;
+  padding: 10px 42px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.go-next-btn:hover {
+  background: rgba(255, 209, 102, 0.2);
+  color: #fff;
+}
+
+/* ---------- QUEUE PAGE (finding match layout) ---------- */
+#tabpage-3 {
+  align-items: center;
+  gap: 26px;
+}
+
+.tl-banner-logo {
+  width: min(520px, 58vw) !important;
+  margin: 0 auto !important;
+  animation: none !important;
+  filter: drop-shadow(0 0 22px rgba(255, 94, 110, 0.45)) !important;
+}
+
+.tl-ratingblock {
+  width: min(920px, 86vw);
+  text-align: center;
+}
+
+.tl-rating-line {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 10px;
+}
+
+#meter-rating {
+  font-size: 76px;
+  text-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
+}
+
+.tl-substats {
+  font-size: 13.5px;
+  margin: 8px 0 16px 0;
+}
+
+.tl-progress { text-align: left; }
+
+.tl-queueline {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  font-family: "IBM Plex Mono", monospace;
+  letter-spacing: 2px;
+  color: #8b93a7;
+}
+
+.tl-big {
+  font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+  font-size: 62px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+  text-shadow: 0 0 18px rgba(255, 255, 255, 0.35);
+}
+
+.tl-queueline label {
+  font-size: 15px;
+  letter-spacing: 3px;
+}
+
+.tl-dot { font-size: 30px; color: #3a4152; }
+
+.tl-est {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 13px;
+  letter-spacing: 2px;
+  color: #8b93a7;
+  margin: -8px 0 0 0;
+}
+
+.tl-est b { color: #fff; }
+
+.tl-mmbar {
+  width: min(920px, 86vw);
+  box-sizing: border-box;
+  text-align: center;
+  background: linear-gradient(180deg, rgba(158, 28, 40, 0.95), rgba(96, 14, 22, 0.95));
+  border: 1px solid rgba(255, 94, 110, 0.6);
+  border-radius: 3px;
+  padding: 24px 0;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+
+.tl-mmbar:hover { filter: brightness(1.3); }
+
+.tl-mmbar h1 {
+  font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: 8px;
+  margin: 0 0 4px 0;
+  color: #ffb3ba;
+  text-shadow: 0 0 16px rgba(255, 80, 90, 0.55);
+}
+
+.tl-mmbar h4 {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+  font-weight: 400;
+}
+
+.tl-mmbar.queue {
+  border: 2px solid rgba(255, 60, 60, 0.9) !important;
+  animation: mm-pulse 1.5s ease infinite;
+}
+
+.tl-howpanel {
+  width: min(920px, 86vw);
+  box-sizing: border-box;
+  background: linear-gradient(180deg, rgba(84, 18, 26, 0.85), rgba(52, 12, 18, 0.85));
+  border: 1px solid rgba(255, 94, 110, 0.4);
+  border-radius: 3px;
+  padding: 20px 28px;
+}
+
+.tl-howpanel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.tl-howpanel h2 {
+  font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: #ffb3ba;
+  margin: 0;
+}
+
+.tl-lead-btn {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: rgba(255, 179, 186, 0.7);
+  border: 1px solid rgba(255, 179, 186, 0.4);
+  border-radius: 3px;
+  padding: 6px 12px;
+}
+
+.tl-howpanel p {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12.5px;
+  letter-spacing: 1px;
+  line-height: 1.9;
+  color: rgba(255, 214, 218, 0.85);
+  margin: 0;
+}
+
+/* ---------- FULL-BLEED MENU BANDS ---------- */
+.tab-button {
+  width: calc(88vw) !important;
+  padding: 30px 44px !important;
+  border-radius: 0 3px 3px 0 !important;
+  border-left-width: 8px !important;
+  background: linear-gradient(
+    100deg,
+    rgba(10, 12, 18, 0.92) 30%,
+    color-mix(in srgb, var(--accent, #4f8cff) 22%, rgba(10, 12, 18, 0.85))
+  ) !important;
+}
+
+.tab-button:hover {
+  border-left-width: 16px !important;
+  background: linear-gradient(
+    100deg,
+    rgba(18, 22, 32, 0.95) 20%,
+    color-mix(in srgb, var(--accent, #4f8cff) 38%, rgba(14, 17, 25, 0.85))
+  ) !important;
+}
+
+.tab-button h1 {
+  font-size: 44px !important;
+  font-style: italic;
+  letter-spacing: 5px !important;
+  text-shadow: 0 0 16px color-mix(in srgb, var(--accent, #4f8cff) 60%, transparent);
+}
+
+/* ============================================================
+   UI 3.1 — polish pass: spacing, transitions, results anim,
+   winner glow, big stats, ping placement, profile modal.
+   ============================================================ */
+
+/* Ping chip: bottom-right corner, small and quiet. */
+#connection-indicator-wrapper {
+  top: auto;
+  bottom: 64px;
+  right: 12px;
+  left: auto;
+  font-size: 11px;
+  opacity: 0.6;
+  padding: 4px 9px;
+  z-index: 30;
+}
+
+#connection-indicator { width: 9px; height: 9px; }
+
+/* Page spacing: ONE rule for every tabpage, so no page can drift from the
+   others. Tall blocks need real air between them. */
+.tabpage { gap: 42px; }
+
+.tabpage.visible > .tab-button,
+.tabpage.visible > .tl-banner-logo,
+.tabpage.visible > .tl-ratingblock,
+.tabpage.visible > .tl-queueline,
+.tabpage.visible > .tl-mmbar,
+.tabpage.visible > .tl-howpanel,
+.tabpage.visible > .settings-card,
+.tabpage.visible > img,
+.tabpage.visible > h3,
+.tabpage.visible > .tab-sect {
+  animation: page-item-in 0.42s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+
+.tabpage.visible > *:nth-child(2) { animation-delay: 0.05s; }
+.tabpage.visible > *:nth-child(3) { animation-delay: 0.1s; }
+.tabpage.visible > *:nth-child(4) { animation-delay: 0.15s; }
+.tabpage.visible > *:nth-child(5) { animation-delay: 0.2s; }
+.tabpage.visible > *:nth-child(6) { animation-delay: 0.25s; }
+
+@keyframes page-item-in {
+  0% { transform: translateX(60px); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+/* Header chip: the ORIGINAL design (gradient box, username, orange XP bar
+   with the level number) — only compacted so it fits inside the 72px header
+   instead of hanging below it. */
+#level-indicator {
+  position: fixed !important;
+  top: 0 !important; /* hangs from the very top of the screen, like a badge */
+  right: 16px !important;
+  left: auto !important;
+  padding: 7px 14px 8px 14px !important;
+  min-width: 190px;
+  box-sizing: border-box;
+  cursor: pointer;
+  z-index: 40;
+  border-top: none !important;
+  border-radius: 0 0 4px 4px !important;
+  /* gradient and side borders inherited from the original rule; total height
+     ~56px leaves clear tolerance above the 72px header's bottom edge */
+}
+
+#level-indicator .level-name {
+  font-size: 15px !important;
+  margin-bottom: 5px;
+}
+
+#level-indicator .level-bar {
+  height: 20px !important;
+  width: 100%;
+  margin-top: 0;
+}
+
+#level-indicator:hover {
+  top: 8px !important; /* the original hover nudged it down; keep it anchored */
+  filter: brightness(118%);
+}
+
+/* Results screen: animate everything in. */
+#game-over-panel.active { animation: go-fade 0.35s ease-out both; }
+
+@keyframes go-fade {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+#game-over-panel.active .go-me { animation: mi-slide-left 0.5s 0.1s cubic-bezier(0.2, 1.2, 0.35, 1) both; }
+#game-over-panel.active .go-foe { animation: mi-slide-right 0.5s 0.1s cubic-bezier(0.2, 1.2, 0.35, 1) both; }
+#game-over-panel.active #go-vs { animation: mi-vs-in 0.4s 0.4s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
+#game-over-panel.active #go-lower { animation: rise-in 0.5s 0.5s ease-out both; }
+#game-over-panel.active .go-bottombar { animation: rise-in 0.45s 0.65s ease-out both; }
+
+/* Winner card: golden glow. */
+.go-winner {
+  border-color: rgba(255, 209, 102, 0.95) !important;
+  box-shadow: 0 0 44px rgba(255, 209, 102, 0.45), inset 0 0 30px rgba(255, 209, 102, 0.12) !important;
+}
+
+/* Notable stats: big numbers with labels. */
+.go-stats {
+  display: flex;
+  gap: 30px;
+  margin-top: auto;
+  padding-top: 12px;
+  justify-content: flex-start;
+}
+
+.go-stat b {
+  display: block;
+  font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+  font-size: 30px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+}
+
+.go-stat label {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 2px;
+}
+
+.go-me .go-stat label { color: #7aa5ff; }
+.go-foe .go-stat label { color: #ff8a95; }
+
+/* Chat: scrollable log + input. */
+#go-chat { display: flex; flex-direction: column; }
+
+#go-chat-log {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 60px;
+  max-height: 170px;
+}
+
+#go-chat-input {
+  margin-top: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+  color: #fff;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 13px;
+  padding: 9px 12px;
+  outline: none;
+}
+
+#go-chat-input:focus { border-color: rgba(255, 209, 102, 0.6); }
+
+/* Profile modal. */
+#profile-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(4, 5, 8, 0.8);
+  backdrop-filter: blur(4px);
+}
+
+#profile-modal.active { display: flex; }
+
+#profile-card {
+  position: relative;
+  width: min(460px, 88vw);
+  background: linear-gradient(180deg, rgba(20, 24, 34, 0.98), rgba(10, 12, 18, 0.98));
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-top: 4px solid #4f8cff;
+  border-radius: 4px;
+  padding: 34px 40px;
+  text-align: center;
+  animation: profile-pop 0.3s cubic-bezier(0.2, 1.3, 0.4, 1) both;
+}
+
+@keyframes profile-pop {
+  0% { transform: scale(0.85); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+#profile-close {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  background: none;
+  border: none;
+  color: #8b93a7;
+  font-size: 26px;
+  cursor: pointer;
+}
+
+#profile-close:hover { color: #fff; }
+
+#profile-name {
+  font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  margin: 0;
+  color: #fff;
+}
+
+.profile-rank {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: #ffd166;
+  margin: 6px 0 22px 0;
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.profile-stat {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  padding: 14px 0 10px 0;
+}
+
+.profile-stat b {
+  display: block;
+  font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+  font-size: 34px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+}
+
+.profile-stat label {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 9.5px;
+  letter-spacing: 2px;
+  color: #8b93a7;
+}
+
+.profile-joined {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: #5d6478;
+  margin: 22px 0 0 0;
+}
+
+/* About page stays reachable in markup, but the menu entry is hidden for now. */
+#about-btn { display: none !important; }
+
+/* ============================================================
+   Round overlay + custom rooms + menu trims
+   ============================================================ */
+
+#public-btn { display: none !important; }
+
+/* Round overlay: Champion-style big score beat. */
+#round-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  pointer-events: none;
+  background: rgba(5, 6, 9, 0.55);
+  backdrop-filter: blur(2px);
+}
+
+#round-overlay.active {
+  display: flex;
+  animation: ro-in 0.3s ease-out both;
+}
+
+@keyframes ro-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+#ro-label {
+  font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+  font-size: 44px;
+  font-weight: 700;
+  letter-spacing: 8px;
+  margin: 0;
+  text-shadow: 0 0 24px currentColor;
+  animation: mi-found-in 0.4s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+
+#ro-score {
+  display: flex;
+  align-items: center;
+  gap: 34px;
+  font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+  font-weight: 700;
+  line-height: 1;
+}
+
+#ro-me, #ro-foe {
+  font-size: 190px;
+  color: #fff;
+  text-shadow: 0 0 44px rgba(255, 255, 255, 0.45);
+  min-width: 130px;
+  text-align: center;
+}
+
+#ro-me { color: #7aa5ff; }
+#ro-foe { color: #ff8a95; }
+
+.ro-dash { font-size: 90px; color: #3a4152; }
+
+.ro-punch {
+  animation: ro-punch 0.55s cubic-bezier(0.15, 1.4, 0.3, 1) both;
+}
+
+@keyframes ro-punch {
+  0% { transform: scale(2.6); filter: brightness(3); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+
+#ro-sub {
+  font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 6px;
+  color: #ffd166;
+  text-shadow: 0 0 20px rgba(255, 209, 102, 0.6);
+  margin: 6px 0 0 0;
+  min-height: 36px;
+}
+
+/* Custom rooms page. */
+/* Custom-game cards ARE menu bands (same class -> identical width forever).
+   Only the interactive behaviours are neutralised. */
+.cg-card {
+  --accent: #49dcf0;
+  white-space: normal !important;
+  cursor: default;
+}
+
+/* Cards must be completely inert: no hover slide, no click slide (the base
+   .tab-button:active rule yanks elements 200px left — catastrophic when you
+   are typing in the code input), no brightness, no background shift. */
+.cg-card:hover,
+.cg-card:active {
+  right: -200px !important;
+  border-left-width: 8px !important;
+  filter: none !important;
+  background: linear-gradient(
+    100deg,
+    rgba(10, 12, 18, 0.92) 30%,
+    color-mix(in srgb, var(--accent, #4f8cff) 22%, rgba(10, 12, 18, 0.85))
+  ) !important;
+}
+
+.cg-card { transition: none !important; }
+
+.cg-card h2 {
+  font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  margin: 0 0 8px 0;
+  color: #fff;
+}
+
+.cg-desc {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11.5px;
+  letter-spacing: 1.6px;
+  color: #8b93a7;
+  margin: 0 0 18px 0;
+}
+
+#cg-hosting { display: none; text-align: center; }
+
+#cg-code {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 64px;
+  font-weight: 700;
+  letter-spacing: 18px;
+  color: #49dcf0;
+  text-shadow: 0 0 26px rgba(73, 220, 240, 0.5);
+  margin: 8px 0 4px 0;
+}
+
+.cg-wait {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: #8b93a7;
+  animation: cg-blink 1.6s ease infinite;
+  margin: 0 0 16px 0;
+}
+
+@keyframes cg-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.cg-join-row { display: flex; gap: 12px; }
+
+#cg-join-code {
+  flex: 0 0 220px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 3px;
+  color: #fff;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 8px;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 10px 12px;
+  outline: none;
+}
+
+#cg-join-code:focus { border-color: rgba(73, 220, 240, 0.7); }
+
+#cg-error {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  color: #ff8a95;
+  margin: 12px 0 0 0;
+  min-height: 16px;
+}
