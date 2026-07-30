@@ -333,37 +333,47 @@
       this.floaters.push({ obj: t, life: 0, max: 0.85, x: this.mx(x), y: y });
     }
 
-    // My own instant-feedback actions: played from the LOCAL sim the moment
-    // the input happens (zero latency), so server copies are skipped.
-    _isMyInstantAction(e) {
-      return (
-        e.cube === this.myIndex &&
-        ["shoot", "dash", "melee_swing", "melee_whiff"].includes(e.type)
-      );
+    // ACTION events (either cube) play from the LOCAL prediction the moment
+    // they happen — that is when the muzzle flash matches the bullet's actual
+    // spawn point. Server copies of the same action arrive ~RTT/2 later and
+    // are deduped; they only fire if prediction missed the action entirely.
+    static ACTION_TYPES = ["shoot", "dash", "melee_swing", "melee_whiff"];
+
+    _fxKey(e) {
+      return e.type + ":" + e.cube;
     }
 
     consumeEvents() {
       const evs = this.game.drainEvents();
       for (const e of evs) {
         if (this.netMode) {
-          // Online: local prediction is trusted only for MY instant actions
-          // (plus cosmetic shot-wall pops). Hits, KOs, items and everything
-          // the OPPONENT does play from authoritative server events instead,
-          // so no sound can go missing or double.
-          if (!this._isMyInstantAction(e) && e.type !== "shot_wall") continue;
+          const isAction = ArenaRenderer.ACTION_TYPES.includes(e.type);
+          // Online, prediction voices actions and cosmetic wall pops only.
+          // Hits, KOs, item pickups and round flow are server-authoritative.
+          if (!isAction && e.type !== "shot_wall") continue;
+          if (isAction) {
+            this._recentFx = this._recentFx || {};
+            this._recentFx[this._fxKey(e)] = performance.now();
+          }
         }
         this._handleEvent(e);
       }
     }
 
-    // Authoritative events from the server (net mode): everything except my
-    // already-played instant actions and the snapshot-driven round flow.
+    // Authoritative events from the server (net mode).
     consumeServerEvents(evs) {
       if (!evs) return;
+      const now = performance.now();
+      this._recentFx = this._recentFx || {};
       for (const e of evs) {
-        if (this._isMyInstantAction(e)) continue;
         if (e.type === "shot_wall") continue;
         if (e.type === "round_over" || e.type === "round_start" || e.type === "match_over") continue;
+        if (ArenaRenderer.ACTION_TYPES.includes(e.type)) {
+          // Backstop only: skip if the prediction already played this action.
+          const k = this._fxKey(e);
+          if (this._recentFx[k] && now - this._recentFx[k] < 300) continue;
+          this._recentFx[k] = now;
+        }
         this._handleEvent(e);
       }
     }
@@ -431,7 +441,8 @@
               Sfx.play("wall", 1.4, 0.45);
               this._spark(e.x, e.y, 0x9ad9ff, 8, 170, 0.26);
             } else {
-              Sfx.play("wall", 1.7, 0.6); // projectile impact thud
+              // Same impact sound as a melee hit, per feel testing.
+              Sfx.play("melee", 0.95 + Math.random() * 0.1);
               this._spark(e.x, e.y, 0xffb0b0, 12, 220, 0.3);
               this._floater(e.x, e.y - 20, "-" + Math.round(e.dmg), 0xff9a9a, 16);
               this.shake = Math.max(this.shake, 5);

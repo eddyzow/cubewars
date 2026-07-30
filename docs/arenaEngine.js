@@ -73,7 +73,8 @@
   // A match is FIRST TO 3 round wins. A KO ends the round; cubes respawn at
   // their starting spots after a short pause and fight again.
   const ROUND_WINS_NEEDED = 3;
-  const ROUND_PAUSE = 3.0; // frozen-at-spawn time: score beat + fast 3-2-1
+  const ROUND_PAUSE = 3.0; // total between-round time
+  const ROUND_RESPAWN_DELAY = 1.0; // KO lingers this long before teleport home
 
   // --- terrain ---------------------------------------------------------------
   // Crates block movement and eat shots; generated from the match seed, so
@@ -164,6 +165,7 @@
       this.round = 1;
       this.roundWins = [0, 0];
       this.roundPauseT = 0; // >0 = between rounds, gameplay suspended
+      this.pendingRespawn = false;
 
       // Player 0 left-facing-right, player 1 right-facing-left.
       this.cubes = [
@@ -235,10 +237,15 @@
       this.tick++;
       this.time += DT;
 
-      // Between rounds: cubes are already back at spawn (teleported the
-      // moment the round ended); they stay frozen until the countdown is done.
+      // Between rounds: the KO'd cube stays down for a beat (the score
+      // overlay plays), then everyone teleports home and freezes until the
+      // countdown finishes.
       if (this.roundPauseT > 0) {
         this.roundPauseT = Math.max(0, this.roundPauseT - DT);
+        if (this.pendingRespawn && this.roundPauseT <= ROUND_PAUSE - ROUND_RESPAWN_DELAY) {
+          this.pendingRespawn = false;
+          this._respawnRound();
+        }
         return;
       }
 
@@ -675,9 +682,7 @@
           round: this.round,
         });
         this.roundPauseT = ROUND_PAUSE;
-        // Teleport everyone home NOW, so the countdown plays over the fresh
-        // board rather than the corpse of the last round.
-        this._respawnRound();
+        this.pendingRespawn = true; // teleport happens after the KO beat
       }
     }
 
@@ -733,6 +738,7 @@
         round: this.round,
         roundWins: this.roundWins.slice(),
         roundPauseT: this.roundPauseT,
+        pendingRespawn: this.pendingRespawn,
         cubes: this.cubes.map((c) => ({
           id: c.id,
           x: Math.round(c.x * 100) / 100,
@@ -776,6 +782,7 @@
         this.round = s.round;
         this.roundWins = s.roundWins.slice();
         this.roundPauseT = s.roundPauseT;
+        this.pendingRespawn = !!s.pendingRespawn;
       }
       for (let i = 0; i < s.cubes.length; i++) {
         Object.assign(this.cubes[i], s.cubes[i]);
