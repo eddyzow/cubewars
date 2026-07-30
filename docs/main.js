@@ -738,7 +738,6 @@ $(document).ready(function () {
       void bc.offsetWidth;
       $bc.addClass("punch");
       if (steps[i] === "GO!") {
-        Sfx.play("matchBegin");
         if (onGo) onGo();
         setTimeout(() => $bc.removeClass("active punch go"), 700);
       } else {

@@ -952,7 +952,6 @@
     }
 
     showRoundStart(round) {
-      Sfx.play("matchBegin");
       this._floater(this.game.width / 2, this.game.height / 2 - 60, "ROUND " + round + " \u2014 FIGHT!", 0xffd166, 34);
     }
 
