@@ -37,8 +37,8 @@
   // --- regen -----------------------------------------------------------------
   // Slow comeback mechanic: after a few clean seconds, HP trickles back. With
   // all damage halved, fights become longer and disengaging has real value.
-  const REGEN_DELAY = 4; // seconds without taking damage
-  const REGEN_RATE = 3.5; // hp per second
+  const REGEN_DELAY = 2.5; // seconds without taking damage
+  const REGEN_RATE = 4; // hp per second
 
   // --- melee -----------------------------------------------------------------
   // Reach + arc rather than a hitbox: rewards facing and spacing. Generous on
@@ -73,7 +73,7 @@
   // A match is FIRST TO 3 round wins. A KO ends the round; cubes respawn at
   // their starting spots after a short pause and fight again.
   const ROUND_WINS_NEEDED = 3;
-  const ROUND_PAUSE = 4.3; // seconds between rounds: score beat + 3-2-1
+  const ROUND_PAUSE = 3.0; // frozen-at-spawn time: score beat + fast 3-2-1
 
   // --- terrain ---------------------------------------------------------------
   // Crates block movement and eat shots; generated from the match seed, so
@@ -235,13 +235,10 @@
       this.tick++;
       this.time += DT;
 
-      // Between rounds: time passes but nobody acts, then everyone respawns.
+      // Between rounds: cubes are already back at spawn (teleported the
+      // moment the round ended); they stay frozen until the countdown is done.
       if (this.roundPauseT > 0) {
-        this.roundPauseT -= DT;
-        if (this.roundPauseT <= 0) {
-          this.roundPauseT = 0;
-          this._respawnRound();
-        }
+        this.roundPauseT = Math.max(0, this.roundPauseT - DT);
         return;
       }
 
@@ -376,29 +373,7 @@
         this.events.push({ type: "shoot", cube: c.id, x: c.x + nx * CUBE_R, y: c.y + ny * CUBE_R, aim: c.aim });
       }
 
-      // Items: E uses the held one, Q drops it on the ground.
-      if (inp.useItem && c.item) {
-        const kind = c.item;
-        c.item = null;
-        if (kind === "medkit") c.hp = Math.min(MAX_HP, c.hp + MEDKIT_HEAL);
-        else if (kind === "power") c.buffDmg = BUFF_TIME;
-        else if (kind === "overdrive") {
-          c.buffSpeed = BUFF_TIME;
-          c.buffRapid = BUFF_TIME;
-        } else if (kind === "aegis") c.shield = SHIELD_POOL;
-        this.events.push({ type: "item_use", cube: c.id, kind: kind, x: c.x, y: c.y });
-      }
-      if (inp.dropItem && c.item) {
-        this.powerups.push({
-          x: c.x,
-          y: c.y,
-          kind: c.item,
-          born: this.time,
-          delay: ITEM_PICKUP_DELAY,
-        });
-        this.events.push({ type: "item_drop", cube: c.id, kind: c.item, x: c.x, y: c.y });
-        c.item = null;
-      }
+
     }
 
     _resolveMelee(c) {
@@ -654,15 +629,19 @@
         }
       }
 
-      // Pickup into the hand — never auto-applied, and only with a free hand.
+      // Walk over an item to use it immediately.
       for (let i = this.powerups.length - 1; i >= 0; i--) {
         const p = this.powerups[i];
-        if (this.time - p.born < (p.delay || 0)) continue; // freshly dropped
         for (const c of this.cubes) {
-          if (!c.alive || c.item) continue;
+          if (!c.alive) continue;
           if (Math.hypot(c.x - p.x, c.y - p.y) > CUBE_R + PU_R) continue;
-          c.item = p.kind;
-          this.events.push({ type: "item_pickup", cube: c.id, kind: p.kind, x: p.x, y: p.y });
+          if (p.kind === "medkit") c.hp = Math.min(MAX_HP, c.hp + MEDKIT_HEAL);
+          else if (p.kind === "power") c.buffDmg = BUFF_TIME;
+          else if (p.kind === "overdrive") {
+            c.buffSpeed = BUFF_TIME;
+            c.buffRapid = BUFF_TIME;
+          } else if (p.kind === "aegis") c.shield = SHIELD_POOL;
+          this.events.push({ type: "item_use", cube: c.id, kind: p.kind, x: p.x, y: p.y });
           this.powerups.splice(i, 1);
           break;
         }
@@ -696,6 +675,9 @@
           round: this.round,
         });
         this.roundPauseT = ROUND_PAUSE;
+        // Teleport everyone home NOW, so the countdown plays over the fresh
+        // board rather than the corpse of the last round.
+        this._respawnRound();
       }
     }
 

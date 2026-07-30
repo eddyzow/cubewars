@@ -58,22 +58,13 @@
       const ang = Math.atan2(dy, dx);
       inp.aim = ang + (Math.random() - 0.5) * this.wobble;
 
-      // Grab a nearby item when the hand is free; chase medkits when hurt.
+      // Chase nearby items; chase medkits harder when hurt.
       let target = null;
-      if (!me.item) {
-        for (const p of this.game.powerups) {
-          const pd = Math.hypot(p.x - me.x, p.y - me.y);
-          if (pd < 190 || (p.kind === "medkit" && me.hp < 55 && pd < 420)) {
-            if (!target || pd < target.d) target = { x: p.x, y: p.y, d: pd };
-          }
+      for (const p of this.game.powerups) {
+        const pd = Math.hypot(p.x - me.x, p.y - me.y);
+        if (pd < 190 || (p.kind === "medkit" && me.hp < 55 && pd < 420)) {
+          if (!target || pd < target.d) target = { x: p.x, y: p.y, d: pd };
         }
-      }
-
-      // Use what we're holding at a sensible moment.
-      if (me.item === "medkit") {
-        if (me.hp < 55) inp.useItem = true;
-      } else if (me.item && dist < 420 && Math.random() < 0.06) {
-        inp.useItem = true; // combat buffs go on as a fight brews
       }
 
       const desired = me.hp < 30 && foe.hp > 30 ? 340 : this.aggro > Math.random() ? 40 : 190;
@@ -299,15 +290,6 @@
       }
 
       inp.dash = !!(this.keys[" "] || this.keys["shift"]);
-      // Single-press semantics: consume the key so holding doesn't spam.
-      if (this.keys["e"]) {
-        inp.useItem = true;
-        this.keys["e"] = false;
-      }
-      if (this.keys["q"]) {
-        inp.dropItem = true;
-        this.keys["q"] = false;
-      }
       return inp;
     }
 

@@ -276,9 +276,6 @@
       this.pingMs = null; // set externally; null = local play
       this.pingText = mkText(W - 14, this.game.height - 24, 11, 0x5d6478, [1, 0]);
 
-      // Held item caption, next to the item slot bottom-left.
-      this.itemLabel = mkText(88, this.game.height - 56, 10.5, 0x8b93a7);
-
       // Round score (first to 3), top centre.
       this.scoreText = mkText(W / 2, 50, 26, 0xffffff, [0.5, 0]);
       this.scoreText.style.fontFamily = "IBM Plex Sans Condensed, IBM Plex Sans, sans-serif";
@@ -336,9 +333,43 @@
       this.floaters.push({ obj: t, life: 0, max: 0.85, x: this.mx(x), y: y });
     }
 
+    // My own instant-feedback actions: played from the LOCAL sim the moment
+    // the input happens (zero latency), so server copies are skipped.
+    _isMyInstantAction(e) {
+      return (
+        e.cube === this.myIndex &&
+        ["shoot", "dash", "melee_swing", "melee_whiff"].includes(e.type)
+      );
+    }
+
     consumeEvents() {
       const evs = this.game.drainEvents();
       for (const e of evs) {
+        if (this.netMode) {
+          // Online: local prediction is trusted only for MY instant actions
+          // (plus cosmetic shot-wall pops). Hits, KOs, items and everything
+          // the OPPONENT does play from authoritative server events instead,
+          // so no sound can go missing or double.
+          if (!this._isMyInstantAction(e) && e.type !== "shot_wall") continue;
+        }
+        this._handleEvent(e);
+      }
+    }
+
+    // Authoritative events from the server (net mode): everything except my
+    // already-played instant actions and the snapshot-driven round flow.
+    consumeServerEvents(evs) {
+      if (!evs) return;
+      for (const e of evs) {
+        if (this._isMyInstantAction(e)) continue;
+        if (e.type === "shot_wall") continue;
+        if (e.type === "round_over" || e.type === "round_start" || e.type === "match_over") continue;
+        this._handleEvent(e);
+      }
+    }
+
+    _handleEvent(e) {
+      {
         switch (e.type) {
           case "shoot": {
             Sfx.play("shoot", 0.95 + Math.random() * 0.12);
@@ -400,6 +431,7 @@
               Sfx.play("wall", 1.4, 0.45);
               this._spark(e.x, e.y, 0x9ad9ff, 8, 170, 0.26);
             } else {
+              Sfx.play("wall", 1.7, 0.6); // projectile impact thud
               this._spark(e.x, e.y, 0xffb0b0, 12, 220, 0.3);
               this._floater(e.x, e.y - 20, "-" + Math.round(e.dmg), 0xff9a9a, 16);
               this.shake = Math.max(this.shake, 5);
@@ -485,7 +517,9 @@
       for (let i = 0; i < g.cubes.length; i++) {
         const c = g.cubes[i];
         const v = this.view[i];
-        const k = 1 - Math.pow(0.0016, step); // fast, frame-rate independent
+        // My cube snaps fast (it's prediction, already correct); the
+        // opponent gets heavier smoothing to hide snapshot/replay jitter.
+        const k = 1 - Math.pow(i === this.myIndex ? 0.0016 : 0.03, step);
         v.x += (c.x - v.x) * k;
         v.y += (c.y - v.y) * k;
         // Aim follows quickly but not instantly, so turning reads as motion.
@@ -867,14 +901,16 @@
       };
 
       // Left bar is always YOU (blue); right is always the opponent (red).
-      const meC = this.game.cubes[this.myIndex];
-      const foeC = this.game.cubes[1 - this.myIndex];
-      const fMe = this.view[this.myIndex].hpShown / MAXHP;
-      const fFoe = this.view[1 - this.myIndex].hpShown / MAXHP;
+      // Online, HP comes from snapshot truth: local regen prediction runs a
+      // tick ahead and made the numbers wobble ±1.
+      const hpOf = (i) =>
+        this.netMode && this._snapHp ? this._snapHp[i] : this.game.cubes[i].hp;
+      const fMe = Math.max(0, hpOf(this.myIndex)) / MAXHP;
+      const fFoe = Math.max(0, hpOf(1 - this.myIndex)) / MAXHP;
       drawBar(22, 32, fMe, fMe > 0.3 ? P1_COLOR : 0xff3b3b, false);
       drawBar(W - 22, 32, fFoe, fFoe > 0.3 ? P2_COLOR : 0xff3b3b, true);
-      this.p1Hp.text = Math.ceil(meC.hp) + " / " + MAXHP;
-      this.p2Hp.text = Math.ceil(foeC.hp) + " / " + MAXHP;
+      this.p1Hp.text = Math.ceil(hpOf(this.myIndex)) + " / " + MAXHP;
+      this.p2Hp.text = Math.ceil(hpOf(1 - this.myIndex)) + " / " + MAXHP;
 
       // My cooldown pips.
       const me = this.game.cubes[this.myIndex];
@@ -900,20 +936,6 @@
         cd.drawRoundedRect(px, py, pipW * f, pipH, 3);
         cd.endFill();
         px += pipW + gap;
-      }
-
-      // Held item slot, bottom-left: what E will use and Q will drop.
-      cd.lineStyle(1.5, 0x2f3542, 1);
-      cd.beginFill(0x101319, 0.85);
-      cd.drawRoundedRect(20, this.game.height - 78, 58, 58, 6);
-      cd.endFill();
-      cd.lineStyle(0);
-      const held = this.game.cubes[this.myIndex].item;
-      if (held) {
-        this._drawItemIcon(cd, held, 49, this.game.height - 49, 16);
-        this.itemLabel.text = held.toUpperCase() + "  ·  E USE  ·  Q DROP";
-      } else {
-        this.itemLabel.text = "NO ITEM";
       }
 
       // Round score: my wins always on the left.
@@ -952,7 +974,8 @@
     }
 
     showRoundStart(round) {
-      this._floater(this.game.width / 2, this.game.height / 2 - 60, "ROUND " + round + " \u2014 FIGHT!", 0xffd166, 34);
+      // Cubes have just teleported home; the 3-2-1 supplies the hype.
+      this._floater(this.game.width / 2, this.game.height / 2 - 130, "ROUND " + round, 0xffd166, 30);
     }
 
     // Server-truth hit feedback: called by the net layer when a snapshot shows

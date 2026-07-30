@@ -225,12 +225,11 @@ console.log("\n== item spawning ==");
   ok("an item spawned", g.powerups.length >= 1, "count=" + g.powerups.length);
   ok("never more than one on the map", g.powerups.length <= 1, "count=" + g.powerups.length);
 
-  // Speed buff via overdrive item raises the cap.
+  // Speed buff via overdrive contact raises the cap.
   const g4 = new ArenaGame({ seed: 9 });
   g4.obstacles = [];
-  g4.cubes[0].item = "overdrive";
-  const use = makeInput(); use.useItem = true;
-  g4.step([use, makeInput()]);
+  g4.powerups.push({ x: g4.cubes[0].x, y: g4.cubes[0].y, kind: "overdrive", born: 0 });
+  g4.step([makeInput(), makeInput()]);
   ok("overdrive buffs speed + fire rate", g4.cubes[0].buffSpeed > 0 && g4.cubes[0].buffRapid > 0);
   const fast = makeInput(); fast.right = true;
   run(g4, 100, fast);
@@ -314,60 +313,30 @@ console.log("\n== v2: obstacles ==");
   ok("crate blocks shot", g2.cubes[1].hp === MAX_HP, "hp=" + g2.cubes[1].hp);
 }
 
-console.log("\n== v3: items (pickup / hold / use / drop) ==");
+console.log("\n== v3: items apply instantly on contact ==");
 {
   const g = new ArenaGame({ seed: 3 });
   g.obstacles = [];
-  g.powerups.push({ x: g.cubes[1].x, y: g.cubes[1].y, kind: "aegis", born: 0, delay: 0 });
+  g.powerups.push({ x: g.cubes[1].x, y: g.cubes[1].y, kind: "aegis", born: 0 });
   g.step(idle());
-  ok("item held, not auto-applied", g.cubes[1].item === "aegis" && g.cubes[1].shield === 0,
-     "item=" + g.cubes[1].item + " shield=" + g.cubes[1].shield);
+  ok("aegis applies on walk-over", g.cubes[1].shield === A.SHIELD_POOL, "shield=" + g.cubes[1].shield);
+  ok("item consumed", g.powerups.length === 0);
 
-  // A second item cannot be picked up with a full hand.
-  g.powerups.push({ x: g.cubes[1].x, y: g.cubes[1].y, kind: "medkit", born: 0, delay: 0 });
-  g.step(idle());
-  ok("full hand refuses second item", g.cubes[1].item === "aegis" && g.powerups.length === 1);
-
-  // E uses it. The medkit still on the ground underfoot is grabbed by the
-  // newly-freed hand in the same tick — that's intended pickup behaviour.
-  const use = makeInput(); use.useItem = true;
-  g.step([makeInput(), use]);
-  ok("E applies aegis shield", g.cubes[1].shield === A.SHIELD_POOL, "shield=" + g.cubes[1].shield);
-  ok("freed hand grabs the item underfoot", g.cubes[1].item === "medkit", "item=" + g.cubes[1].item);
-
-  // Shield then absorbs a melee.
-  g.cubes[0].x = g.cubes[1].x - 45; g.cubes[0].y = g.cubes[1].y;
-  const inp = makeInput(); inp.melee = true; inp.aim = 0;
-  run(g, 6, inp);
-  ok("shield absorbs melee fully", g.cubes[1].hp === MAX_HP, "hp=" + g.cubes[1].hp);
-  ok("shield pool reduced", g.cubes[1].shield < A.SHIELD_POOL, "shield=" + g.cubes[1].shield);
+  const g2 = new ArenaGame({ seed: 3 });
+  g2.obstacles = [];
+  g2.powerups.push({ x: g2.cubes[0].x, y: g2.cubes[0].y, kind: "overdrive", born: 0 });
+  g2.step(idle());
+  ok("overdrive applies on contact", g2.cubes[0].buffSpeed > 0 && g2.cubes[0].buffRapid > 0);
 }
 
-console.log("\n== v3: item drop ==");
-{
-  const g = new ArenaGame({ seed: 3 });
-  g.obstacles = [];
-  g.cubes[0].item = "medkit";
-  const drop = makeInput(); drop.dropItem = true;
-  g.step([drop, makeInput()]);
-  ok("Q drops the item to the ground", g.cubes[0].item === null && g.powerups.length === 1);
-  // Immediate re-pickup is blocked by the drop delay.
-  g.step(idle());
-  ok("no instant re-grab", g.cubes[0].item === null, "item=" + g.cubes[0].item);
-  // After the delay expires, standing on it picks it back up.
-  run(g, 40, makeInput());
-  ok("re-picked up after delay", g.cubes[0].item === "medkit");
-}
-
-console.log("\n== v3: medkit heals on use ==");
+console.log("\n== v3: medkit heals on contact ==");
 {
   const g = new ArenaGame({ seed: 3 });
   g.obstacles = [];
   g.cubes[0].hp = 40;
   g.cubes[0].lastDamagedAt = g.time; // suppress regen for a clean reading
-  g.cubes[0].item = "medkit";
-  const use = makeInput(); use.useItem = true;
-  g.step([use, makeInput()]);
+  g.powerups.push({ x: g.cubes[0].x, y: g.cubes[0].y, kind: "medkit", born: 0 });
+  g.step([makeInput(), makeInput()]);
   ok("medkit heals " + A.MEDKIT_HEAL, Math.abs(g.cubes[0].hp - (40 + A.MEDKIT_HEAL)) < 1,
      "hp=" + g.cubes[0].hp);
 }

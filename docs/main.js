@@ -453,14 +453,14 @@ $(document).ready(function () {
       if (leader === 2) $("#ro-sub").text("MATCH POINT");
     }, 650);
 
-    // Fade the score, then 3-2-1 into the next round. The engine's round
-    // pause is 4.3s: score 0-2.0s, countdown 2.0-4.1s, respawn at 4.3s.
-    setTimeout(() => ov.removeClass("active"), 1950);
+    // Score beat, then a FAST 3-2-1 over the already-respawned board.
+    // Engine pause is 3.0s: score 0-1.55s, countdown 1.6-2.95s, GO ~= unfreeze.
+    setTimeout(() => ov.removeClass("active"), 1550);
     setTimeout(() => {
       if (activeGame && activeGame.game && !activeGame.game.over) {
         runBigCountdown(null);
       }
-    }, 2000);
+    }, 1600);
   };
 
   // Post-match chat: type on the results screen, relayed to your opponent.
@@ -739,10 +739,10 @@ $(document).ready(function () {
       $bc.addClass("punch");
       if (steps[i] === "GO!") {
         if (onGo) onGo();
-        setTimeout(() => $bc.removeClass("active punch go"), 700);
+        setTimeout(() => $bc.removeClass("active punch go"), 450);
       } else {
         i++;
-        setTimeout(beat, 700);
+        setTimeout(beat, 450);
       }
     };
     beat();
@@ -810,6 +810,7 @@ $(document).ready(function () {
       isNet && opts.opponent ? "RATING " + (opts.opponent.rating || 0) : "TRAINING DUMMY"
     );
 
+    if (isNet) Sfx.play("intro1"); // act-intro stinger on real match found
     $("#match-intro").addClass("active");
 
     setTimeout(() => {

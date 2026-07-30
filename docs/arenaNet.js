@@ -38,6 +38,13 @@
 
       socket.on("match-state", (data) => this._onState(data));
 
+      // Authoritative FX events — the single source for hits, KOs, items and
+      // opponent actions. Reliable channel, so nothing is ever missed.
+      socket.on("match-events", (evs) => {
+        const r = this.controller && this.controller.renderer;
+        if (r && this.active) r.consumeServerEvents(evs);
+      });
+
       socket.on("match-over", (data) => {
         // Authoritative end. The local sim may not have registered the KO yet
         // (e.g. forfeit); force it so the controller's over-handler fires.
@@ -91,32 +98,18 @@
       const pendingEvents = g.events;
       g.events = [];
 
-      // Pre-apply state, for authoritative-delta feedback below.
-      const preHp = [g.cubes[0].hp, g.cubes[1].hp];
-
       // Adopt the authoritative state wholesale...
       g.applySnapshot(data.snap);
 
-      // AUTHORITATIVE FEEDBACK: prediction can miss hits entirely (the remote
-      // player's swing may resolve only on the server). If the snapshot shows
-      // HP lower than anything the local sim produced, force the hit feedback
-      // — flash, sparks, sound, damage number — so both screens always react.
+      // Hit/action feedback now comes EXCLUSIVELY from server "match-events"
+      // (reliable). The old hp-delta fallback fired alongside them and caused
+      // duplicate hit effects, so it is gone.
       const r = this.controller && this.controller.renderer;
       if (r) {
-        const now = performance.now();
-        this._lastAuthHit = this._lastAuthHit || [0, 0];
-        for (let i = 0; i < 2; i++) {
-          const drop = preHp[i] - g.cubes[i].hp;
-          // Regen makes predicted HP run ~a tick AHEAD of the snapshot, so
-          // tiny positive deltas are drift, not damage. Real hits are >= 3
-          // (shot); anything below 2.5 is noise and must not fire feedback —
-          // the phantom "-1"s also ate the rate-limit window and suppressed
-          // genuine slam feedback.
-          if (drop >= 2.5 && now - this._lastAuthHit[i] > 140) {
-            this._lastAuthHit[i] = now;
-            r.showAuthoritativeHit(i, drop);
-          }
-        }
+        // Ground items render from snapshot truth only — local prediction of
+        // spawns/pickups made phantoms blink in for a frame.
+        r._snapPowerups = data.snap.powerups || [];
+        r._snapHp = [data.snap.cubes[0].hp, data.snap.cubes[1].hp];
         // Round transitions compare SNAPSHOT-to-SNAPSHOT, never against the
         // local prediction: prediction can register a KO before the server
         // does, and comparing against it made a merely-behind snapshot look
