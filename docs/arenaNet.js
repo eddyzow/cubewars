@@ -108,7 +108,12 @@
         this._lastAuthHit = this._lastAuthHit || [0, 0];
         for (let i = 0; i < 2; i++) {
           const drop = preHp[i] - g.cubes[i].hp;
-          if (drop > 0.5 && now - this._lastAuthHit[i] > 140) {
+          // Regen makes predicted HP run ~a tick AHEAD of the snapshot, so
+          // tiny positive deltas are drift, not damage. Real hits are >= 3
+          // (shot); anything below 2.5 is noise and must not fire feedback —
+          // the phantom "-1"s also ate the rate-limit window and suppressed
+          // genuine slam feedback.
+          if (drop >= 2.5 && now - this._lastAuthHit[i] > 140) {
             this._lastAuthHit[i] = now;
             r.showAuthoritativeHit(i, drop);
           }
