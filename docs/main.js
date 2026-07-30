@@ -476,6 +476,12 @@ $(document).ready(function () {
   socket.on("match-chat", (m) => {
     if (window._chatAppend) window._chatAppend(m.from.toLowerCase(), m.text, false);
   });
+  socket.on("chat-peer-left", (m) => {
+    if (window._chatAppend) {
+      window._chatAppend(null, (m.name || "opponent").toLowerCase() + " left the room", true);
+    }
+    $("#go-chat-input").prop("disabled", true).attr("placeholder", "opponent left");
+  });
 
   // Profile modal: click the header chip.
   function openProfile() {
@@ -676,17 +682,21 @@ $(document).ready(function () {
       );
 
       const el = document.getElementById("go-rating");
-      const t0 = performance.now();
-      const dur = 1400;
-      const tick = (now) => {
-        const t = Math.min(1, (now - t0) / dur);
-        const k = 1 - Math.pow(1 - t, 3); // ease-out cubic
-        el.textContent = Math.round(from + (to - from) * k);
-        if (t < 1 && document.getElementById("game-over-panel").classList.contains("active")) {
-          requestAnimationFrame(tick);
-        }
-      };
-      requestAnimationFrame(tick);
+      el.textContent = from; // hold the old rating while the panel animates in
+      setTimeout(() => {
+        const t0 = performance.now();
+        const dur = 1100;
+        const tick = (now) => {
+          const t = Math.min(1, (now - t0) / dur);
+          const k = 1 - Math.pow(1 - t, 3); // ease-out cubic
+          el.textContent = Math.round(from + (to - from) * k);
+          if (t < 1 && document.getElementById("game-over-panel").classList.contains("active")) {
+            requestAnimationFrame(tick);
+          }
+        };
+        requestAnimationFrame(tick);
+      }, 1050); // #go-lower finishes rising at ~1.0s
+    
       window._lastMatchOver = null;
     } else {
       $("#go-standing").css("visibility", "hidden");
@@ -696,6 +706,8 @@ $(document).ready(function () {
   }
 
   function exitGame() {
+    socket.emit("chat-leave"); // tell the last opponent we've moved on
+    $("#go-chat-input").prop("disabled", false).attr("placeholder", "message...");
     if (window._gamePingInterval) {
       clearInterval(window._gamePingInterval);
       window._gamePingInterval = null;
@@ -855,6 +867,7 @@ $(document).ready(function () {
 
   function restartGame() {
     if (!activeGame || !window._lastLaunch) return;
+    $("#go-chat-input").prop("disabled", false).attr("placeholder", "message...");
     $("#game-over-panel").removeClass("active");
     // Full relaunch so the intro/countdown presentation replays and a fresh
     // seed generates a fresh map.
