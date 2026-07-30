@@ -54,7 +54,7 @@
   const SHOT_SPEED = 800;
   const SHOT_DMG = 3;
   const SHOT_CD = 0.17;
-  const SHOT_LIFE = 1.35;
+  const SHOT_LIFE = 5.0; // effectively "until a wall": bullets die on impact, not mid-flight
   const SHOT_R = 6;
   const SHOT_KNOCK = 90;
 

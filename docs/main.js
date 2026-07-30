@@ -927,6 +927,328 @@ $(document).ready(function () {
     e.stopPropagation();
   });
 
+  // ===========================================================
+  // REPLAYS — game history + deterministic playback.
+  // A replay is seed + per-tick inputs; the engine re-simulates the
+  // match exactly. Controls: pause, speed, round jump, POV swap.
+  // ===========================================================
+
+  let replayPlayer = null;
+  const SPEEDS = [0.5, 1, 2, 4];
+
+  class ReplayPlayer {
+    constructor(decoded, pov) {
+      this.decoded = decoded;
+      this.meta = decoded.meta;
+      this.names = (this.meta.names || ["P1", "P2"]).map((n) => n.toUpperCase());
+      this.pov = pov === 1 ? 1 : 0;
+      this.speed = 1;
+      this.playing = true;
+      this.acc = 0;
+      this.lastT = performance.now();
+      this.renderer = null;
+      this._buildSim(0);
+      this._buildRenderer();
+      this._syncBar();
+      this._onKey = (e) => {
+        if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+        const k = e.key.toLowerCase();
+        if (k === "escape") exitReplay();
+        else if (k === " ") {
+          e.preventDefault();
+          this.togglePlay();
+        }
+      };
+      document.addEventListener("keydown", this._onKey);
+      // Same setInterval-not-rAF reasoning as the live game loop.
+      this.timer = setInterval(() => this._loop(), 1000 / window.CubeArena.TICK_RATE);
+    }
+
+    // Fresh sim fast-forwarded (silently) to startTick.
+    _buildSim(startTick) {
+      this.game = new window.CubeArena.ArenaGame({ seed: this.meta.seed });
+      this.cursor = new window.CubeArenaReplay.Cursor(this.decoded);
+      for (let t = 1; t <= startTick; t++) {
+        this.game.step(this.cursor.inputsFor(t));
+        this.game.drainEvents(); // no FX while seeking
+      }
+      this.game._lastStepAt = performance.now();
+      if (this.renderer) this.renderer.game = this.game;
+      this.acc = 0;
+    }
+
+    // Renderer rebuild = perspective change (mirroring + identity colors).
+    _buildRenderer() {
+      if (this.renderer) this.renderer.destroy();
+      this.renderer = new window.CubeArenaRender.ArenaRenderer(
+        document.getElementById("game-stage"),
+        this.game,
+        { myIndex: this.pov, netMode: false }
+      );
+      this.renderer.p1Name.text = this.names[this.pov];
+      this.renderer.p2Name.text = this.names[1 - this.pov];
+      this.renderer.pingMs = null;
+    }
+
+    _loop() {
+      if (!this.renderer) return;
+      const now = performance.now();
+      const dtMs = Math.min(250, now - this.lastT);
+      this.lastT = now;
+      if (this.playing && !this.done()) {
+        this.acc += (dtMs / 1000) * this.speed;
+        const DT = window.CubeArena.DT;
+        // Cap catch-up so 4x on a slow machine can't spiral.
+        let steps = 0;
+        while (this.acc >= DT && !this.done() && steps < 16) {
+          this.acc -= DT;
+          steps++;
+          this.game.step(this.cursor.inputsFor(this.game.tick + 1));
+          this.game._lastStepAt = performance.now();
+        }
+      }
+      this.renderer.consumeEvents();
+      if (this.done() && this.playing) {
+        this.playing = false;
+        this._syncBar();
+      }
+      this._syncProgress();
+    }
+
+    done() {
+      return this.game.over || this.game.tick >= this.meta.ticks;
+    }
+
+    curRoundIdx() {
+      const rounds = this.meta.rounds || [0];
+      let i = 0;
+      while (i + 1 < rounds.length && rounds[i + 1] <= this.game.tick) i++;
+      return i;
+    }
+
+    togglePlay() {
+      if (this.done()) {
+        // RESTART from the top.
+        this._buildSim(0);
+        this._buildRenderer();
+        this.playing = true;
+      } else {
+        this.playing = !this.playing;
+      }
+      this._syncBar();
+    }
+
+    jumpRound(delta) {
+      const rounds = this.meta.rounds || [0];
+      const target = Math.max(0, Math.min(rounds.length - 1, this.curRoundIdx() + delta));
+      const startTick = rounds[target];
+      if (startTick >= this.game.tick) {
+        // Forward: silently fast-forward the live sim.
+        while (this.game.tick < startTick && !this.game.over) {
+          this.game.step(this.cursor.inputsFor(this.game.tick + 1));
+          this.game.drainEvents();
+        }
+        this.game._lastStepAt = performance.now();
+        this.acc = 0;
+      } else {
+        // Backward: deterministic rebuild from tick 0.
+        this._buildSim(startTick);
+        this._buildRenderer();
+      }
+      this.playing = true;
+      this._syncBar();
+    }
+
+    cycleSpeed() {
+      this.speed = SPEEDS[(SPEEDS.indexOf(this.speed) + 1) % SPEEDS.length];
+      this._syncBar();
+    }
+
+    switchPov() {
+      this.pov = 1 - this.pov;
+      this._buildRenderer();
+      this._syncBar();
+    }
+
+    _syncBar() {
+      $("#rb-play").text(this.done() ? "RESTART" : this.playing ? "PAUSE" : "PLAY");
+      $("#rb-speed").text((this.speed + "×").replace("0.5×", "½×"));
+      $("#rb-pov").text("POV: " + this.names[this.pov]);
+    }
+
+    _syncProgress() {
+      const fmt = (t) => {
+        const s = Math.floor(t / window.CubeArena.TICK_RATE);
+        return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+      };
+      $("#rb-progress").text(
+        (this.done() ? "REPLAY OVER" : "ROUND " + (this.curRoundIdx() + 1)) +
+          " · " + fmt(Math.min(this.game.tick, this.meta.ticks)) + " / " + fmt(this.meta.ticks)
+      );
+    }
+
+    destroy() {
+      clearInterval(this.timer);
+      document.removeEventListener("keydown", this._onKey);
+      if (this.renderer) this.renderer.destroy();
+      this.renderer = null;
+      this.game = null;
+    }
+  }
+
+  function launchReplay(decoded, pov) {
+    window.CubeArenaRender.Sfx.init();
+
+    // Same wallpaper treatment as a live match.
+    const WPL = { 1:129,2:47,3:89,4:106,5:164,6:97,7:82,8:174,9:110,10:144,11:145,12:94,13:126,14:73,15:105 };
+    const wp = Math.floor(Math.random() * 15) + 1;
+    const wpEl = document.getElementById("game-wallpaper");
+    wpEl.style["background-image"] = 'url("assets/art/wallpapers/' + wp + '.jpg")';
+    wpEl.style.opacity = Math.max(0.22, Math.min(0.62, 34 / ((WPL[wp] || 110) / 10) / 10)).toFixed(3);
+
+    $("#game-over-panel, #match-intro").removeClass("active");
+    $("#game-screen").addClass("active");
+    $("#game-help").hide();
+    $("#replay-bar").addClass("active");
+    $("#dev-warning, #changelog, #connection-indicator-wrapper").hide();
+    $("#home-container, #preload").hide();
+
+    if (replayPlayer) replayPlayer.destroy();
+    replayPlayer = new ReplayPlayer(decoded, pov);
+  }
+
+  function exitReplay() {
+    if (replayPlayer) {
+      replayPlayer.destroy();
+      replayPlayer = null;
+    }
+    $("#replay-bar").removeClass("active");
+    $("#game-help").show();
+    $("#round-overlay").removeClass("active");
+    $("#game-screen").removeClass("active");
+    $("#dev-warning, #changelog, #connection-indicator-wrapper").show();
+    $("#home-container").show();
+  }
+
+  $("#rb-exit").on("click", exitReplay);
+  $("#rb-play").on("click", () => replayPlayer && replayPlayer.togglePlay());
+  $("#rb-prev").on("click", () => replayPlayer && replayPlayer.jumpRound(-1));
+  $("#rb-next").on("click", () => replayPlayer && replayPlayer.jumpRound(1));
+  $("#rb-speed").on("click", () => replayPlayer && replayPlayer.cycleSpeed());
+  $("#rb-pov").on("click", () => replayPlayer && replayPlayer.switchPov());
+
+  // ---- history list ----
+
+  function fmtWhen(ms) {
+    const d = new Date(ms);
+    return d
+      .toLocaleDateString(undefined, { month: "short", day: "numeric" })
+      .toUpperCase() +
+      " " +
+      d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }).toUpperCase();
+  }
+
+  function loadReplayList() {
+    $("#replay-list").html('<p class="rp-empty">LOADING...</p>');
+    socket.emit("replay-list", localStorage.getItem("userToken"), (resp) => {
+      if (resp.error) return $("#replay-list").html('<p class="rp-empty">' + resp.error + "</p>");
+      const rows = resp.data || [];
+      if (!rows.length) {
+        return $("#replay-list").html(
+          '<p class="rp-empty">NO REPLAYS YET — PLAY AN ONLINE MATCH AND IT WILL SHOW UP HERE.</p>'
+        );
+      }
+      const html = rows
+        .map((r) => {
+          const me = (r.names[r.you] || "YOU").toUpperCase();
+          const foe = (r.names[1 - r.you] || "OPPONENT").toUpperCase();
+          const won = r.winner === r.you;
+          const res = r.winner === -1 ? "D" : won ? "W" : "L";
+          const dur = Math.floor(r.durationS / 60) + ":" + String(r.durationS % 60).padStart(2, "0");
+          return (
+            '<div class="rp-row ' + (r.winner === -1 ? "rp-draw" : won ? "rp-win" : "rp-loss") + '" data-id="' + r.id + '">' +
+            '<div class="rp-result">' + res + "</div>" +
+            '<div class="rp-info">' +
+            '<div class="rp-main">' + me + ' <i>vs</i> ' + foe +
+            '<span class="rp-score">' + (r.score[r.you] || 0) + " - " + (r.score[1 - r.you] || 0) + "</span></div>" +
+            '<div class="rp-sub">' + (r.ranked ? "RANKED" : "CUSTOM") +
+            " · " + fmtWhen(r.endedAt) + " · " + dur +
+            (r.how === "forfeit" ? " · FORFEIT" : "") + "</div>" +
+            "</div>" +
+            '<div class="rp-actions">' +
+            '<button class="rp-btn rp-watch">WATCH</button>' +
+            '<button class="rp-btn rp-dl" title="Download as .txt">.TXT</button>' +
+            '<button class="rp-btn rp-keep' + (r.keep ? " kept" : "") + '">' + (r.keep ? "KEPT ✓" : "KEEP") + "</button>" +
+            "</div></div>"
+          );
+        })
+        .join("");
+      $("#replay-list").html(html);
+    });
+  }
+
+  function fetchReplay(id, cb) {
+    socket.emit("replay-get", { token: localStorage.getItem("userToken"), id: id }, (resp) => {
+      if (resp.error) return alert(resp.error);
+      cb(resp);
+    });
+  }
+
+  $("#replay-list").on("click", ".rp-watch", function () {
+    const id = $(this).closest(".rp-row").data("id");
+    fetchReplay(id, (resp) => {
+      let decoded;
+      try {
+        decoded = window.CubeArenaReplay.decode(resp.data);
+      } catch (err) {
+        return alert("Could not read this replay: " + err.message);
+      }
+      launchReplay(decoded, resp.you === 1 ? 1 : 0);
+    });
+  });
+
+  $("#replay-list").on("click", ".rp-dl", function () {
+    const row = $(this).closest(".rp-row");
+    fetchReplay(row.data("id"), (resp) => {
+      const meta = (() => {
+        try { return JSON.parse(resp.data.split("\n")[1]); } catch (e) { return {}; }
+      })();
+      const names = meta.names || ["p1", "p2"];
+      const d = new Date(meta.date || Date.now());
+      const stamp = d.toISOString().slice(0, 10);
+      const blob = new Blob([resp.data], { type: "text/plain" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "cubewars-" + stamp + "-" + names[0] + "-vs-" + names[1] + ".txt";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        URL.revokeObjectURL(a.href);
+        a.remove();
+      }, 500);
+    });
+  });
+
+  $("#replay-list").on("click", ".rp-keep", function () {
+    const btn = $(this);
+    const id = btn.closest(".rp-row").data("id");
+    const keep = !btn.hasClass("kept");
+    socket.emit("replay-keep", { token: localStorage.getItem("userToken"), id: id, keep: keep }, (resp) => {
+      if (resp.error) return alert(resp.error);
+      btn.toggleClass("kept", resp.keep).text(resp.keep ? "KEPT ✓" : "KEEP");
+    });
+  });
+
+  $("#replays-btn").on("click", function () {
+    $("#back-btn").removeClass("no-hover").css("left", "-70px");
+    $(".tabpage").css("right", "-85vw").removeClass("visible");
+    $("#tabpage-5").css("right", "-0vw").addClass("visible");
+    pg = 5;
+    $("#main-header-text").text("REPLAYS");
+    $("#main-footer").text("REWATCH YOUR RECENT MATCHES");
+    loadReplayList();
+  });
+
   $("#settings-btn").on("click", function () {
     $("#back-btn").removeClass("no-hover").css("left", "-70px");
     // Hide every page first — settings can be reached with any page open.
@@ -1087,6 +1409,13 @@ $(document).ready(function () {
       socket.emit("custom-cancel");
       resetCustomUI();
       $("#tabpage-4").css("right", "-85vw").removeClass("visible");
+      $("#tabpage-2").css("right", "0vw").addClass("visible");
+      pg = 2;
+      $("#main-header-text").text("PLAY");
+      $("#main-footer").text("SELECT A GAME MODE!");
+    }
+    if (pg === 5) {
+      $("#tabpage-5").css("right", "-85vw").removeClass("visible");
       $("#tabpage-2").css("right", "0vw").addClass("visible");
       pg = 2;
       $("#main-header-text").text("PLAY");

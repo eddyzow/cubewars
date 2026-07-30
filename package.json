@@ -15,7 +15,8 @@
     "socket.io": "^4.8.1"
   },
   "devDependencies": {
-    "nodemon": "^2.0.21"
+    "nodemon": "^2.0.21",
+    "socket.io-client": "^4.8.3"
   },
   "scripts": {
     "dev": "nodemon --env-file=.env --watch server.js --watch docs/arenaEngine.js server.js",

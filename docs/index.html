@@ -9,18 +9,19 @@
       href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="style.css?v=1785433343" />
+    <link rel="stylesheet" href="style.css?v=1785500001" />
     <script src="https://cdn.jsdelivr.net/npm/tsparticles@2/tsparticles.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/6.5.10/browser/pixi.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.core.min.js"></script>
     <script src="https://cdn.socket.io/4.8.1/socket.io.js"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="assets/particles.min.js"></script>
-    <script src="arenaEngine.js?v=1785434637"></script>
-    <script src="arenaRenderer.js?v=1785435005"></script>
-    <script src="arenaController.js?v=1785435081"></script>
-    <script src="arenaNet.js?v=1785433997"></script>
-    <script src="main.js?v=1785434893" defer></script>
+    <script src="arenaEngine.js?v=1785500001"></script>
+    <script src="arenaReplay.js?v=1785500001"></script>
+    <script src="arenaRenderer.js?v=1785500001"></script>
+    <script src="arenaController.js?v=1785500001"></script>
+    <script src="arenaNet.js?v=1785500001"></script>
+    <script src="main.js?v=1785500001" defer></script>
   </head>
   <body>
     <div id="connection-indicator-wrapper">
@@ -51,7 +52,7 @@
       <div id="preload-center-container">
         <div id="logo">
           <img src="assets/logo.png" alt="Cube Wars Logo" />
-          <div class="devmode">INDEV 26.31.01</div>
+          <div class="devmode">INDEV 26.31.02</div>
         </div>
 
         <div id="login-box" class="box">
@@ -228,6 +229,22 @@
         <div class="tab-button" id="public-btn">
           <h1>PUBLIC ROOMS</h1>
           <p>JOIN PUBLIC GAMES</p>
+        </div>
+        <div class="tab-button" id="replays-btn">
+          <h1>REPLAYS</h1>
+          <p>REWATCH YOUR MATCHES FROM THE LAST 7 DAYS</p>
+        </div>
+        <div class="scroll-spacer"></div>
+      </div>
+
+      <!-- REPLAYS / GAME HISTORY -->
+      <div id="tabpage-5" class="tabpage">
+        <div class="rp-note">
+          REPLAYS ARE SAVED FOR <b>7 DAYS</b>, THEN DELETED &mdash; HIT
+          <b>KEEP</b> TO SAVE ONE FOREVER. DOWNLOAD ANY REPLAY AS A .TXT FILE.
+        </div>
+        <div id="replay-list">
+          <p class="rp-empty">LOADING...</p>
         </div>
         <div class="scroll-spacer"></div>
       </div>
@@ -497,6 +514,21 @@
       <div id="big-countdown"></div>
       <div id="game-flash"></div>
 
+      <!-- REPLAY BAR: playback controls, only visible while watching a replay. -->
+      <div id="replay-bar">
+        <span class="rb-tag">REPLAY</span>
+        <button class="rb-btn" id="rb-exit" title="Exit replay (ESC)">EXIT</button>
+        <span class="rb-sep"></span>
+        <button class="rb-btn" id="rb-prev" title="Previous round">&#9668;&#9668;</button>
+        <button class="rb-btn rb-wide" id="rb-play" title="Play / pause">PAUSE</button>
+        <button class="rb-btn" id="rb-next" title="Next round">&#9658;&#9658;</button>
+        <span class="rb-sep"></span>
+        <button class="rb-btn rb-wide" id="rb-speed" title="Playback speed">1&times;</button>
+        <button class="rb-btn rb-wide" id="rb-pov" title="Switch perspective">POV: P1</button>
+        <span class="rb-sep"></span>
+        <span id="rb-progress">ROUND 1 &middot; 0:00 / 0:00</span>
+      </div>
+
       <!-- ROUND OVERLAY: big score shown, then the winner's digit ticks up. -->
       <div id="round-overlay">
         <p id="ro-label">ROUND WON</p>
@@ -525,9 +557,9 @@
 
     <div
       class="tooltip" id="changelog"
-      title="Changelog (INDEV 26.31.01):&#10;- Cube Wars is now a real-time 1v1 arena fighter!&#10;- First-to-3 rounds, items, dash slams, autoregen&#10;- Ranked Tesseract queue with live matchmaking&#10;- Custom rooms with join codes&#10;- All-new UI, results screen, and profiles"
+      title="Changelog (INDEV 26.31.02):&#10;- REPLAYS: every online match is now recorded!&#10;- Rewatch from GAME HISTORY (7 days, or KEEP forever)&#10;- Playback speeds, round jumps, both perspectives&#10;- Download replays as .txt files&#10;- Bullets now fly until they hit a wall (5s cap)"
     >
-      Cube Wars INDEV 26.31.01 (July 30, 2026)
+      Cube Wars INDEV 26.31.02 (July 30, 2026)
     </div>
     
   </body>

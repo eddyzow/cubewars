@@ -3271,3 +3271,188 @@ hr {
 
 /* Footer icons step aside so the corner belongs to the ping chip. */
 #icons-footer { margin-right: 130px; }
+
+/* ============================================================
+   REPLAYS — game history list + in-game playback bar
+   ============================================================ */
+
+.rp-note {
+  width: min(920px, 92%);
+  font-family: "Martian Mono", monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: #8b93a7;
+  background: rgba(10, 14, 24, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 12px 18px;
+  line-height: 1.7;
+}
+.rp-note b { color: #ffd166; }
+
+#replay-list {
+  width: min(920px, 92%);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rp-empty {
+  font-family: "Martian Mono", monospace;
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  color: #8b93a7;
+  padding: 24px 6px;
+}
+
+.rp-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  background: rgba(10, 14, 24, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-left-width: 4px;
+}
+.rp-row.rp-win { border-left-color: #ffd166; }
+.rp-row.rp-loss { border-left-color: #ff5e6e; }
+.rp-row.rp-draw { border-left-color: #8b93a7; }
+
+.rp-result {
+  font-family: "Martian Mono", monospace;
+  font-weight: 800;
+  font-size: 1.5rem;
+  width: 36px;
+  text-align: center;
+  flex: 0 0 auto;
+}
+.rp-win .rp-result { color: #ffd166; }
+.rp-loss .rp-result { color: #ff5e6e; }
+.rp-draw .rp-result { color: #8b93a7; }
+
+.rp-info { flex: 1; min-width: 0; }
+
+.rp-main {
+  font-family: "Martian Mono", monospace;
+  font-size: 0.92rem;
+  letter-spacing: 0.06em;
+  color: #eef1f8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rp-main i {
+  color: #8b93a7;
+  font-style: normal;
+  font-size: 0.7rem;
+  margin: 0 6px;
+}
+.rp-score {
+  margin-left: 14px;
+  color: #ffd166;
+  font-weight: 700;
+}
+
+.rp-sub {
+  font-family: "Martian Mono", monospace;
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  color: #8b93a7;
+  margin-top: 4px;
+}
+
+.rp-actions {
+  display: flex;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.rp-btn {
+  font-family: "Martian Mono", monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  padding: 8px 14px;
+  background: transparent;
+  color: #dfe6f5;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.rp-btn:hover {
+  background: #eef1f8;
+  color: #0a0e18;
+  border-color: #eef1f8;
+}
+.rp-btn.rp-keep.kept {
+  background: rgba(255, 209, 102, 0.14);
+  color: #ffd166;
+  border-color: #ffd166;
+}
+
+/* ---- playback bar ---- */
+
+#replay-bar {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%) translateY(80px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(8, 11, 20, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 60;
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.35s ease;
+}
+#replay-bar.active {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.rb-tag {
+  font-family: "Martian Mono", monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.22em;
+  color: #0a0e18;
+  background: #ffd166;
+  padding: 4px 8px;
+  font-weight: 800;
+}
+
+.rb-btn {
+  font-family: "Martian Mono", monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  padding: 7px 12px;
+  background: transparent;
+  color: #dfe6f5;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.rb-btn:hover {
+  background: #eef1f8;
+  color: #0a0e18;
+}
+.rb-wide { min-width: 72px; }
+
+.rb-sep {
+  width: 1px;
+  height: 22px;
+  background: rgba(255, 255, 255, 0.14);
+  margin: 0 4px;
+}
+
+#rb-progress {
+  font-family: "Martian Mono", monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  color: #8b93a7;
+  min-width: 190px;
+  text-align: right;
+}

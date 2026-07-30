@@ -275,7 +275,10 @@
         inp.right = keyRight;
       }
       // mouse.x is already un-mirrored into world space by _onMouseMove.
-      inp.aim = Math.atan2(this.mouse.y - me.y, this.mouse.x - me.x);
+      // Quantized to 1e-4 rad so the value survives the JSON round-trip to the
+      // server unchanged — replays re-feed these exact inputs, so client sim,
+      // server sim, and playback must all see the same number.
+      inp.aim = Math.round(Math.atan2(this.mouse.y - me.y, this.mouse.x - me.x) * 1e4) / 1e4;
 
       // One attack button: melee when the opponent is in reach, shoot
       // otherwise. The decision replicates to the server via the input frame.
