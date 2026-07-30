@@ -439,7 +439,7 @@ $(document).ready(function () {
     void ov[0].offsetWidth;
     ov.addClass("active");
 
-    // Beat 2: the winning digit ticks up with a punch.
+    // Beat 2: the winning digit ticks up with a punch — fast.
     setTimeout(() => {
       if (!ov.hasClass("active")) return;
       const el = iWon ? $("#ro-me") : $("#ro-foe");
@@ -451,16 +451,16 @@ $(document).ready(function () {
       Sfx.play(iWon ? "roundWin" : "dash", iWon ? 1 : 0.8);
       const leader = Math.max(newMine, newFoe);
       if (leader === 2) $("#ro-sub").text("MATCH POINT");
-    }, 650);
+    }, 350);
 
-    // Score beat, then a FAST 3-2-1 over the already-respawned board.
-    // Engine pause is 3.0s: score 0-1.55s, countdown 1.6-2.95s, GO ~= unfreeze.
-    setTimeout(() => ov.removeClass("active"), 1550);
+    // Fast score beat, then 3-2-1 over the respawned board. Engine pause is
+    // 2.6s: score 0-1.1s, teleport at 1.0s, countdown 1.15-2.5s, GO ~= go.
+    setTimeout(() => ov.removeClass("active"), 1100);
     setTimeout(() => {
       if (activeGame && activeGame.game && !activeGame.game.over) {
         runBigCountdown(null);
       }
-    }, 1600);
+    }, 1150);
   };
 
   // Post-match chat: type on the results screen, relayed to your opponent.

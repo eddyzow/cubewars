@@ -73,7 +73,7 @@
   // A match is FIRST TO 3 round wins. A KO ends the round; cubes respawn at
   // their starting spots after a short pause and fight again.
   const ROUND_WINS_NEEDED = 3;
-  const ROUND_PAUSE = 3.0; // total between-round time
+  const ROUND_PAUSE = 2.6; // total between-round time
   const ROUND_RESPAWN_DELAY = 1.0; // KO lingers this long before teleport home
 
   // --- terrain ---------------------------------------------------------------

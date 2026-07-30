@@ -409,6 +409,9 @@
               this.hitStop = 0.055; // freeze frame sells the impact
               const t = this.view[e.target];
               if (t) t.squash = 1.2;
+              // Server-driven hits must flash the victim white too — the
+              // engine only sets hitFlash on locally-predicted damage.
+              if (this.game.cubes[e.target]) this.game.cubes[e.target].hitFlash = 0.16;
             }
             break;
           }
@@ -427,6 +430,7 @@
               this.hitStop = 0.07;
               const t = this.view[e.target];
               if (t) t.squash = 1.4;
+              if (this.game.cubes[e.target]) this.game.cubes[e.target].hitFlash = 0.16;
             }
             break;
           }
@@ -446,6 +450,7 @@
               this._spark(e.x, e.y, 0xffb0b0, 12, 220, 0.3);
               this._floater(e.x, e.y - 20, "-" + Math.round(e.dmg), 0xff9a9a, 16);
               this.shake = Math.max(this.shake, 5);
+              if (this.game.cubes[e.target]) this.game.cubes[e.target].hitFlash = 0.16;
               const t = this.view[e.target];
               if (t) t.squash = 0.5;
             }
