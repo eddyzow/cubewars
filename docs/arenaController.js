@@ -279,7 +279,8 @@
 
       // One attack button: melee when the opponent is in reach, shoot
       // otherwise. The decision replicates to the server via the input frame.
-      if (this.mouse.down || this.keys["_rmb"]) {
+      // SPACE is a second attack trigger, identical to clicking.
+      if (this.mouse.down || this.keys["_rmb"] || this.keys[" "]) {
         const foe = this.game.cubes[1 - this.myIndex];
         const inMelee =
           foe.alive &&
@@ -289,7 +290,7 @@
         inp.shoot = !inMelee;
       }
 
-      inp.dash = !!(this.keys[" "] || this.keys["shift"]);
+      inp.dash = !!(this.keys["e"] || this.keys["shift"]);
       return inp;
     }
 
