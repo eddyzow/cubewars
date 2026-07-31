@@ -542,7 +542,9 @@
         let d = c.aim - v.aim;
         while (d > Math.PI) d -= Math.PI * 2;
         while (d < -Math.PI) d += Math.PI * 2;
-        v.aim += d * (1 - Math.pow(0.0001, step));
+        // Slow enough to glide across the 8Hz aim staircase from the input
+        // sampler, fast enough that flicks still feel immediate.
+        v.aim += d * (1 - Math.pow(0.002, step));
         v.squash = Math.max(0, v.squash - step * 5.5);
         v.recoil = Math.max(0, v.recoil - step * 7);
         v.hpShown += (c.hp - v.hpShown) * (1 - Math.pow(0.002, step));

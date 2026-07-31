@@ -3510,3 +3510,72 @@ hr {
   cursor: default;
   opacity: 0.8;
 }
+
+/* ---- replay seek bar (YouTube-style scrubber) ---- */
+
+#replay-bar {
+  flex-direction: column;
+  gap: 8px;
+  min-width: min(760px, 86vw);
+}
+
+.rb-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+#rb-seek {
+  width: 100%;
+  padding: 6px 0 2px;
+  cursor: pointer;
+}
+
+#rb-seek-track {
+  position: relative;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 3px;
+}
+
+#rb-seek:hover #rb-seek-track {
+  height: 7px;
+}
+
+#rb-seek-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0%;
+  background: #ffd166;
+  border-radius: 3px;
+}
+
+#rb-seek-handle {
+  position: absolute;
+  top: 50%;
+  left: 0%;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #ffd166;
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform 0.12s ease;
+  box-shadow: 0 0 8px rgba(255, 209, 102, 0.6);
+}
+
+#rb-seek:hover #rb-seek-handle {
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.rb-marker {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  background: rgba(255, 255, 255, 0.7);
+  transform: translateX(-50%);
+  pointer-events: none;
+}

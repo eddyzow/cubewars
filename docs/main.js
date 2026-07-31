@@ -1004,6 +1004,7 @@ $(document).ready(function () {
       this.renderer = null;
       this._buildSim(0);
       this._buildRenderer();
+      this._renderMarkers();
       this._syncBar();
       this._onKey = (e) => {
         if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
@@ -1119,6 +1120,38 @@ $(document).ready(function () {
       this._syncBar();
     }
 
+    // YouTube-style scrub: jump to any tick. Forward = silent fast-forward of
+    // the live sim; backward = deterministic rebuild from tick 0 (a few ms).
+    seekTick(t) {
+      t = Math.max(0, Math.min(this.meta.ticks, Math.round(t)));
+      if (t < this.game.tick) {
+        this._buildSim(t);
+      } else {
+        while (this.game.tick < t && !this.game.over) {
+          this.game.step(this.cursor.inputsFor(this.game.tick + 1));
+          this.game.drainEvents();
+        }
+        this.game._lastStepAt = performance.now();
+        this.acc = 0;
+      }
+      this._syncBar();
+      this._syncProgress();
+    }
+
+    // Round-boundary ticks on the seek track.
+    _renderMarkers() {
+      const track = document.getElementById("rb-seek-track");
+      if (!track) return;
+      track.querySelectorAll(".rb-marker").forEach((m) => m.remove());
+      const rounds = this.meta.rounds || [0];
+      for (let i = 1; i < rounds.length; i++) {
+        const m = document.createElement("div");
+        m.className = "rb-marker";
+        m.style.left = (rounds[i] / Math.max(1, this.meta.ticks)) * 100 + "%";
+        track.appendChild(m);
+      }
+    }
+
     switchPov() {
       this.pov = 1 - this.pov;
       this._buildRenderer();
@@ -1140,6 +1173,12 @@ $(document).ready(function () {
         (this.done() ? "REPLAY OVER" : "ROUND " + (this.curRoundIdx() + 1)) +
           " · " + fmt(Math.min(this.game.tick, this.meta.ticks)) + " / " + fmt(this.meta.ticks)
       );
+      const frac = Math.min(1, this.game.tick / Math.max(1, this.meta.ticks));
+      const pct = (frac * 100).toFixed(2) + "%";
+      const fill = document.getElementById("rb-seek-fill");
+      const handle = document.getElementById("rb-seek-handle");
+      if (fill) fill.style.width = pct;
+      if (handle) handle.style.left = pct;
     }
 
     destroy() {
@@ -1184,6 +1223,41 @@ $(document).ready(function () {
     $("#dev-warning, #changelog, #connection-indicator-wrapper").show();
     $("#home-container").show();
   }
+
+  // Seek bar: click anywhere to jump, drag to scrub. Playback pauses during
+  // the drag and resumes after, YouTube-style.
+  (function wireSeekBar() {
+    const seek = document.getElementById("rb-seek");
+    if (!seek) return;
+    let dragging = false;
+    let wasPlaying = false;
+    const fracFrom = (e) => {
+      const r = document.getElementById("rb-seek-track").getBoundingClientRect();
+      return Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+    };
+    const applySeek = (e) => {
+      if (replayPlayer) replayPlayer.seekTick(fracFrom(e) * replayPlayer.meta.ticks);
+    };
+    seek.addEventListener("mousedown", (e) => {
+      if (!replayPlayer) return;
+      dragging = true;
+      wasPlaying = replayPlayer.playing;
+      replayPlayer.playing = false;
+      applySeek(e);
+      e.preventDefault();
+    });
+    window.addEventListener("mousemove", (e) => {
+      if (dragging) applySeek(e);
+    });
+    window.addEventListener("mouseup", () => {
+      if (!dragging) return;
+      dragging = false;
+      if (replayPlayer) {
+        replayPlayer.playing = wasPlaying && !replayPlayer.done();
+        replayPlayer._syncBar();
+      }
+    });
+  })();
 
   $("#rb-exit").on("click", exitReplay);
   $("#rb-play").on("click", () => replayPlayer && replayPlayer.togglePlay());

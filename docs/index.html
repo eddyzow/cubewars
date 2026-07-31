@@ -9,19 +9,19 @@
       href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="style.css?v=1785500005" />
+    <link rel="stylesheet" href="style.css?v=1785500006" />
     <script src="https://cdn.jsdelivr.net/npm/tsparticles@2/tsparticles.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/6.5.10/browser/pixi.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.core.min.js"></script>
     <script src="https://cdn.socket.io/4.8.1/socket.io.js"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="assets/particles.min.js"></script>
-    <script src="arenaEngine.js?v=1785500005"></script>
-    <script src="arenaReplay.js?v=1785500005"></script>
-    <script src="arenaRenderer.js?v=1785500005"></script>
-    <script src="arenaController.js?v=1785500005"></script>
-    <script src="arenaNet.js?v=1785500005"></script>
-    <script src="main.js?v=1785500005" defer></script>
+    <script src="arenaEngine.js?v=1785500006"></script>
+    <script src="arenaReplay.js?v=1785500006"></script>
+    <script src="arenaRenderer.js?v=1785500006"></script>
+    <script src="arenaController.js?v=1785500006"></script>
+    <script src="arenaNet.js?v=1785500006"></script>
+    <script src="main.js?v=1785500006" defer></script>
   </head>
   <body>
     <div id="connection-indicator-wrapper">
@@ -52,7 +52,7 @@
       <div id="preload-center-container">
         <div id="logo">
           <img src="assets/logo.png" alt="Cube Wars Logo" />
-          <div class="devmode">INDEV 26.31.03</div>
+          <div class="devmode">INDEV 26.31.04</div>
         </div>
 
         <div id="login-box" class="box">
@@ -517,6 +517,13 @@
 
       <!-- REPLAY BAR: playback controls, only visible while watching a replay. -->
       <div id="replay-bar">
+        <div id="rb-seek">
+          <div id="rb-seek-track">
+            <div id="rb-seek-fill"></div>
+            <div id="rb-seek-handle"></div>
+          </div>
+        </div>
+        <div class="rb-row">
         <span class="rb-tag">REPLAY</span>
         <button class="rb-btn" id="rb-exit" title="Exit replay (ESC)">EXIT</button>
         <span class="rb-sep"></span>
@@ -528,6 +535,7 @@
         <button class="rb-btn rb-wide" id="rb-pov" title="Switch perspective">POV: P1</button>
         <span class="rb-sep"></span>
         <span id="rb-progress">ROUND 1 &middot; 0:00 / 0:00</span>
+        </div>
       </div>
 
       <!-- ROUND OVERLAY: big score shown, then the winner's digit ticks up. -->
@@ -558,9 +566,9 @@
 
     <div
       class="tooltip" id="changelog"
-      title="Changelog (INDEV 26.31.03):&#10;- REPLAYS: every online match is now recorded!&#10;- Rewatch from GAME HISTORY (7 days, or KEEP forever)&#10;- Playback speeds, round jumps, both perspectives&#10;- Download replays as .txt files&#10;- Bullets now fly until they hit a wall (5s cap)"
+      title="Changelog (INDEV 26.31.04):&#10;- REPLAYS: every online match is now recorded!&#10;- Rewatch from GAME HISTORY (7 days, or KEEP forever)&#10;- Playback speeds, round jumps, both perspectives&#10;- Download replays as .txt files&#10;- Bullets now fly until they hit a wall (5s cap)"
     >
-      Cube Wars INDEV 26.31.03 (July 30, 2026)
+      Cube Wars INDEV 26.31.04 (July 30, 2026)
     </div>
     
   </body>

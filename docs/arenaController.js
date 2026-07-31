@@ -155,8 +155,10 @@
       this.running = true;
       this._overFired = false;
       this.keys = {};
-      this._aimPhase = false;
+      this._aimTick = 0;
       this._lastAim = undefined;
+      this._prevAttack = false;
+      this._prevDash = false;
       this.acc = 0;
       this.lastT = performance.now();
 
@@ -278,14 +280,21 @@
       }
       // mouse.x is already un-mirrored into world space by _onMouseMove.
       // Aim is quantized to a 1/625-radian grid (~3,900 directions, 0.09°
-      // steps — sub-pixel at any arena distance) and sampled every OTHER tick
-      // (16Hz; buttons stay 32Hz). Both choices shrink replays massively:
-      // micro-jitter below the grid stores zero bytes, and half the ticks
-      // never store aim at all. The renderer smooths displayed aim, so the
-      // staircase is invisible. The server quantizes identically, which keeps
-      // client sim, server sim, and replay playback on the same exact floats.
-      this._aimPhase = !this._aimPhase;
-      if (this._aimPhase || this._lastAim === undefined) {
+      // steps) and sampled at 8Hz — EXCEPT on the tick an attack or dash is
+      // first pressed, which forces a fresh sample so flicks fire exactly
+      // where the cursor points. Idle cursor tracking is what gets coarse,
+      // and the renderer's aim smoothing glides through it. Buttons stay
+      // 32Hz-exact. This is what makes replays tiny: aim changes are rare
+      // and small. The server quantizes identically, keeping client sim,
+      // server sim, and replay playback on the same exact floats.
+      const wantsAttack = !!(this.mouse.down || this.keys["_rmb"] || this.keys[" "]);
+      const wantsDash = !!(this.keys["e"] || this.keys["shift"]);
+      const edge =
+        (wantsAttack && !this._prevAttack) || (wantsDash && !this._prevDash);
+      this._prevAttack = wantsAttack;
+      this._prevDash = wantsDash;
+      this._aimTick = ((this._aimTick || 0) + 1) % 4;
+      if (this._aimTick === 0 || edge || this._lastAim === undefined) {
         this._lastAim =
           Math.round(Math.atan2(this.mouse.y - me.y, this.mouse.x - me.x) * 625) / 625;
       }
@@ -294,7 +303,7 @@
       // One attack button: melee when the opponent is in reach, shoot
       // otherwise. The decision replicates to the server via the input frame.
       // SPACE is a second attack trigger, identical to clicking.
-      if (this.mouse.down || this.keys["_rmb"] || this.keys[" "]) {
+      if (wantsAttack) {
         const foe = this.game.cubes[1 - this.myIndex];
         const inMelee =
           foe.alive &&
@@ -304,7 +313,7 @@
         inp.shoot = !inMelee;
       }
 
-      inp.dash = !!(this.keys["e"] || this.keys["shift"]);
+      inp.dash = wantsDash;
       return inp;
     }
 
