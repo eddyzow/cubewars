@@ -5,13 +5,19 @@
 // reproduces the match bit-for-bit — every shot, item spawn, and knockback.
 // That keeps a full match in the KILOBYTES instead of megabytes.
 //
-// Wire/text format v2 (line-based, downloads cleanly as .txt):
-//   CUBEWARS-REPLAY v2
+// Wire/text format (line-based, downloads cleanly as .txt):
+//   CUBEWARS-REPLAY v3
 //   {json meta}
 //   [+tickGap36 ]field0 field1
 //
 //   field := "."                       player's input unchanged
 //          | [mask36] "," [aimDelta36] either part may be empty
+//
+// v3 (current): aim is stored as a DIRECTION-GRID INDEX — the input source
+// quantizes aim to a 1/625-radian grid (~3,900 directions), so ai =
+// round(aim*625) is a small integer and per-tick deltas are 1-2 chars. Aim is
+// also sampled at 16Hz at the source, so half the ticks never store aim.
+// v2 used fixed-point 1e-4 radians; the line grammar is identical.
 //
 // A frame line is emitted only when either player's input CHANGED; unchanged
 // ticks repeat the previous inputs (the server's "latest input wins" model
@@ -19,21 +25,17 @@
 // is omitted when the line lands one tick after the previous one — the
 // overwhelmingly common case while the mouse is moving.
 //
-// mask is the 9 button bits, base36. aim is stored as a fixed-point integer
-// (radians * 1e4) and encoded as a signed base36 DELTA from the previous
-// stored value — mouse movement between adjacent ticks is tiny, so deltas are
-// 1-2 chars where v1 spent ~18 on an absolute decimal. A typical mouse-move
-// tick is ",k ." (5 bytes) vs v1's "1 197,1.5707963267948966 ." (~26).
+// mask is the 9 button bits, base36.
 //
 // IMPORTANT: playback is only exact if the inputs recorded here are the exact
-// values fed to game.step(). Aim is quantized to 1e-4 rad at the input source
-// (controller + server sanitizeInput), so round(aim*1e4) is lossless and
-// ai/1e4 reproduces the identical float64 on decode.
+// values fed to game.step(). The source grid means round(aim*625) is lossless
+// and ai/625 reproduces the identical float64 on decode.
 
 (function (root) {
   "use strict";
 
-  const VERSION = 2;
+  const VERSION = 3;
+  const AIM_DENOM = 625; // v3 grid; v2 stored fixed-point 1e-4
   const MAGIC = "CUBEWARS-REPLAY";
 
   const BITS = ["up", "down", "left", "right", "shoot", "melee", "dash", "useItem", "dropItem"];
@@ -72,7 +74,7 @@
       const fields = [inp0, inp1].map((inp, i) => {
         const p = this.prev[i];
         const mask = maskOf(inp);
-        const ai = Math.round(inp.aim * 1e4);
+        const ai = Math.round(inp.aim * AIM_DENOM);
         let s = (mask !== p.mask ? mask.toString(36) : "") + ",";
         if (ai !== p.ai) s += (ai - p.ai).toString(36);
         p.mask = mask;
@@ -113,7 +115,7 @@
       throw new Error("Not a Cube Wars replay file.");
     }
     const meta = JSON.parse(lines[1]);
-    if (meta.v !== 1 && meta.v !== VERSION) {
+    if (meta.v !== 1 && meta.v !== 2 && meta.v !== 3) {
       throw new Error("Replay version " + meta.v + " is not supported by this client.");
     }
     const changes = [];
@@ -138,7 +140,9 @@
       return { meta: meta, changes: changes };
     }
 
-    // v2: delta-encoded. Decoder tracks each player's running (mask, ai).
+    // v2/v3: delta-encoded. Decoder tracks each player's running (mask, ai);
+    // only the aim unit differs between the two versions.
+    const denom = meta.v === 2 ? 1e4 : AIM_DENOM;
     const st = [{ mask: 0, ai: 0 }, { mask: 0, ai: 0 }];
     const parseField = (s, p) => {
       if (s === ".") return null;
@@ -147,7 +151,7 @@
       const deltaStr = s.slice(c + 1);
       if (maskStr) p.mask = parseInt(maskStr, 36);
       if (deltaStr) p.ai += parseInt(deltaStr, 36);
-      return inputFrom(p.mask, p.ai / 1e4);
+      return inputFrom(p.mask, p.ai / denom);
     };
     for (let i = 2; i < lines.length; i++) {
       const ln = lines[i].trim();

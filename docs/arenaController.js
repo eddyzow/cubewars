@@ -155,6 +155,8 @@
       this.running = true;
       this._overFired = false;
       this.keys = {};
+      this._aimPhase = false;
+      this._lastAim = undefined;
       this.acc = 0;
       this.lastT = performance.now();
 
@@ -275,10 +277,19 @@
         inp.right = keyRight;
       }
       // mouse.x is already un-mirrored into world space by _onMouseMove.
-      // Quantized to 1e-4 rad so the value survives the JSON round-trip to the
-      // server unchanged — replays re-feed these exact inputs, so client sim,
-      // server sim, and playback must all see the same number.
-      inp.aim = Math.round(Math.atan2(this.mouse.y - me.y, this.mouse.x - me.x) * 1e4) / 1e4;
+      // Aim is quantized to a 1/625-radian grid (~3,900 directions, 0.09°
+      // steps — sub-pixel at any arena distance) and sampled every OTHER tick
+      // (16Hz; buttons stay 32Hz). Both choices shrink replays massively:
+      // micro-jitter below the grid stores zero bytes, and half the ticks
+      // never store aim at all. The renderer smooths displayed aim, so the
+      // staircase is invisible. The server quantizes identically, which keeps
+      // client sim, server sim, and replay playback on the same exact floats.
+      this._aimPhase = !this._aimPhase;
+      if (this._aimPhase || this._lastAim === undefined) {
+        this._lastAim =
+          Math.round(Math.atan2(this.mouse.y - me.y, this.mouse.x - me.x) * 625) / 625;
+      }
+      inp.aim = this._lastAim;
 
       // One attack button: melee when the opponent is in reach, shoot
       // otherwise. The decision replicates to the server via the input frame.
