@@ -195,6 +195,10 @@
         clearInterval(this.timer);
         this.timer = null;
       }
+      if (this._overTimer) {
+        clearTimeout(this._overTimer);
+        this._overTimer = null;
+      }
       document.removeEventListener("keydown", this._onKeyDown);
       document.removeEventListener("keyup", this._onKeyUp);
       window.removeEventListener("mouseup", this._onMouseUp);
@@ -362,8 +366,13 @@
           hits: c.hitsLanded,
           shots: c.shotsFired,
         }));
-        // Let the KO explosion play before the panel drops.
-        setTimeout(() => this.onMatchOver(w, stats), 900);
+        // Let the KO explosion play before the panel drops. Tracked so stop()
+        // can cancel it — otherwise leaving during the KO (rematch/exit) lets
+        // the old match's panel drop on top of whatever came next.
+        this._overTimer = setTimeout(() => {
+          this._overTimer = null;
+          this.onMatchOver(w, stats);
+        }, 900);
       }
     }
   }

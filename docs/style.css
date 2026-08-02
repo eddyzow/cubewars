@@ -2618,6 +2618,12 @@ hr {
   color: #ffd166;
 }
 
+.go-bottom-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .go-next-btn {
   font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
   font-size: 24px;
@@ -2635,6 +2641,15 @@ hr {
 .go-next-btn:hover {
   background: rgba(255, 209, 102, 0.2);
   color: #fff;
+}
+
+/* Secondary action next to NEXT — quieter and narrower. */
+.go-rematch-btn {
+  font-size: 20px;
+  letter-spacing: 3px;
+  padding: 10px 26px;
+  color: rgba(255, 209, 102, 0.75);
+  border-color: rgba(255, 209, 102, 0.3);
 }
 
 /* ---------- QUEUE PAGE (finding match layout) ---------- */

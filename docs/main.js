@@ -719,6 +719,8 @@ $(document).ready(function () {
     window._chatAppend(null, "game finished", true);
     // Chat input only makes sense against a human.
     $("#go-chat-input").toggle(!!names.net);
+    // Rematch is practice-only; online players re-queue from the menu.
+    $("#go-rematch").toggle(!names.net && !!window._lastLaunch);
 
     // Standing panel: online only, animated rating count.
     if (names.net && net && net.ranked !== false && typeof net.ratingAfter === "number") {
@@ -914,10 +916,14 @@ $(document).ready(function () {
     launchGame("practice");
   });
 
-  // NEXT: practice replays; online returns to the queue page.
+  // NEXT always leaves the match and returns to the menu. Practice games get a
+  // separate REMATCH button for another round against the bot.
   $("#go-next").on("click", function () {
-    if (activeGame && !activeGame.netHooks) restartGame();
-    else exitGame();
+    exitGame();
+  });
+
+  $("#go-rematch").on("click", function () {
+    restartGame();
   });
 
   function restartGame() {
