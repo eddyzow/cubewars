@@ -176,24 +176,68 @@ function generateSalt(length = 16) {
   return salt;
 }
 
+// ---- SESSION STORAGE ----
+// Cube Wars accounts are a separate system from eddyzow.net accounts: different
+// Mongo cluster, different user records. But the game is served from
+// eddyzow.net/cubewars, so it shares an origin — and therefore a localStorage —
+// with every other site app. The eddyzow.net account SDK owns the bare keys
+// "userToken" / "username" / "id" and rewrites them on sign-in and sign-out, so
+// using those same names here meant the two systems silently clobbered each
+// other's sessions. Everything Cube Wars owns is prefixed instead.
+const CW_TOKEN_KEY = "cw_userToken";
+const CW_NAME_KEY = "cw_username";
+const CW_GUEST_KEY = "cw_guestName";
+
+// Legacy unprefixed keys. Read once so players already signed in before the
+// rename stay signed in, then removed to stop the collision for good.
+function migrateLegacySession() {
+  const legacyToken = localStorage.getItem("userToken");
+  const legacyName = localStorage.getItem("username");
+  // Only adopt these if they aren't already an eddyzow.net portal session —
+  // that one belongs to a different account system and would fail verification.
+  const portalOwned = !!localStorage.getItem("ez.auth");
+  if (!portalOwned && legacyToken && legacyName && !localStorage.getItem(CW_TOKEN_KEY)) {
+    localStorage.setItem(CW_TOKEN_KEY, legacyToken);
+    localStorage.setItem(CW_NAME_KEY, legacyName);
+    localStorage.removeItem("userToken");
+    localStorage.removeItem("username");
+    localStorage.removeItem("id");
+  }
+  const legacyGuest = localStorage.getItem("guestName");
+  if (legacyGuest && !localStorage.getItem(CW_GUEST_KEY)) {
+    localStorage.setItem(CW_GUEST_KEY, legacyGuest);
+    localStorage.removeItem("guestName");
+  }
+}
+migrateLegacySession();
+
+// Single accessors so no call site touches a raw key name.
+function getToken() {
+  return localStorage.getItem(CW_TOKEN_KEY);
+}
+
+function getDisplayName() {
+  return localStorage.getItem(CW_NAME_KEY) || localStorage.getItem(CW_GUEST_KEY);
+}
+
 // Function to store user data in localStorage
 function storeUserData(token, username) {
-  localStorage.setItem("userToken", token);
-  localStorage.setItem("username", username);
+  localStorage.setItem(CW_TOKEN_KEY, token);
+  localStorage.setItem(CW_NAME_KEY, username);
 }
 
 // Function to retrieve user data from localStorage
 function getUserData() {
-  const token = localStorage.getItem("userToken");
-  const username = localStorage.getItem("username");
+  const token = localStorage.getItem(CW_TOKEN_KEY);
+  const username = localStorage.getItem(CW_NAME_KEY);
   return token && username ? { token, username } : null;
 }
 
 // Function to clear user data from localStorage
 function clearUserData() {
-  localStorage.removeItem("userToken");
-  localStorage.removeItem("username");
-  localStorage.removeItem("guestName");
+  localStorage.removeItem(CW_TOKEN_KEY);
+  localStorage.removeItem(CW_NAME_KEY);
+  localStorage.removeItem(CW_GUEST_KEY);
 }
 
 // Guest mode: playing without an account. Ranked, replays, and profiles are
@@ -222,7 +266,7 @@ function validateUsername(username) {
 
 // Function to validate token (placeholder for actual validation)
 function isValidToken() {
-  socket.emit("verifyToken", localStorage.getItem("userToken"));
+  socket.emit("verifyToken", getToken());
 }
 
 // Function to update connection indicator
@@ -290,7 +334,7 @@ function openGame(data) {
   $("#changelog").remove();
   $("#main-tabs").addClass("show");
   $("#username-text").text(
-    (localStorage.getItem("username") || localStorage.getItem("guestName") || "GUEST").toUpperCase()
+    (getDisplayName() || "GUEST").toUpperCase()
   );
   applyGuestGating();
   $("#tabpage-1").addClass("visible");
@@ -370,7 +414,7 @@ $(document).ready(function () {
         $("#reg1-notice").text((resp && resp.error) || "Could not start a guest session.");
         return;
       }
-      localStorage.setItem("guestName", resp.name);
+      localStorage.setItem(CW_GUEST_KEY, resp.name);
       openGame();
     });
   }
@@ -427,7 +471,7 @@ $(document).ready(function () {
       }, 1000);
 
       $("#border-flash").addClass("flashing-border");
-      socket.emit("queue-join", localStorage.getItem("userToken"));
+      socket.emit("queue-join", getToken());
     } else {
       leaveQueueUI();
       socket.emit("queue-leave");
@@ -520,7 +564,7 @@ $(document).ready(function () {
     socket.emit("match-chat", txt);
     window._chatAppend &&
       window._chatAppend(
-        (localStorage.getItem("username") || localStorage.getItem("guestName") || "me").toLowerCase(),
+        (getDisplayName() || "me").toLowerCase(),
         txt,
         false
       );
@@ -539,7 +583,7 @@ $(document).ready(function () {
   // Profile modal: click the header chip.
   function openProfile() {
     if (isGuest()) return guestDeny("CREATE AN ACCOUNT TO TRACK STATS AND RATING");
-    socket.emit("get-profile", localStorage.getItem("userToken"), (resp) => {
+    socket.emit("get-profile", getToken(), (resp) => {
       if (resp.error || !resp.data) return;
       const p = resp.data;
       const info = calculateRankInfo(p.rating);
@@ -608,7 +652,7 @@ $(document).ready(function () {
     $("#set-shake").prop("checked", s.shake);
     $("#set-shake-val").text(s.shake ? "ON" : "OFF");
     $("#set-username").text(
-      (localStorage.getItem("username") || localStorage.getItem("guestName") || "guest").toUpperCase()
+      (getDisplayName() || "guest").toUpperCase()
     );
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
   }
@@ -862,12 +906,7 @@ $(document).ready(function () {
     // ---- Match presentation: MATCH FOUND cards -> 3-2-1 -> GO -------------
     const Sfx = window.CubeArenaRender.Sfx;
     // Online: server-authoritative name (localStorage is shared across tabs).
-    const meName = (
-      opts.myName ||
-      localStorage.getItem("username") ||
-      localStorage.getItem("guestName") ||
-      "YOU"
-    ).toUpperCase();
+    const meName = (opts.myName || getDisplayName() || "YOU").toUpperCase();
     const isNet = !!opts.netHooks;
     $("#mi-found").text(isNet ? "MATCH FOUND" : "PRACTICE MATCH");
     $("#mi-p1name").text(meName);
@@ -961,7 +1000,7 @@ $(document).ready(function () {
   resetCustomUI();
 
   $("#cg-create").on("click", function () {
-    socket.emit("custom-create", localStorage.getItem("userToken"), (resp) => {
+    socket.emit("custom-create", getToken(), (resp) => {
       if (resp.error) return $("#cg-error").text(resp.error);
       $("#cg-create-wrap").hide();
       $("#cg-hosting").show();
@@ -977,7 +1016,7 @@ $(document).ready(function () {
   $("#cg-join").on("click", function () {
     const code = $("#cg-join-code").val().toUpperCase().trim();
     if (code.length < 4) return $("#cg-error").text("Enter the 5-character code.");
-    socket.emit("custom-join", { token: localStorage.getItem("userToken"), code: code }, (resp) => {
+    socket.emit("custom-join", { token: getToken(), code: code }, (resp) => {
       if (resp.error) return $("#cg-error").text(resp.error);
       $("#cg-error").text("");
       // match-found arrives next and launches the game.
@@ -1285,7 +1324,7 @@ $(document).ready(function () {
 
   function loadReplayList() {
     $("#replay-list").html('<p class="rp-empty">LOADING...</p>');
-    socket.emit("replay-list", localStorage.getItem("userToken"), (resp) => {
+    socket.emit("replay-list", getToken(), (resp) => {
       if (resp.error) return $("#replay-list").html('<p class="rp-empty">' + resp.error + "</p>");
       const rows = resp.data || [];
       if (!rows.length) {
@@ -1323,7 +1362,7 @@ $(document).ready(function () {
   }
 
   function fetchReplay(id, cb) {
-    socket.emit("replay-get", { token: localStorage.getItem("userToken"), id: id }, (resp) => {
+    socket.emit("replay-get", { token: getToken(), id: id }, (resp) => {
       if (resp.error) return alert(resp.error);
       cb(resp);
     });
@@ -1368,7 +1407,7 @@ $(document).ready(function () {
     const btn = $(this);
     const id = btn.closest(".rp-row").data("id");
     const keep = !btn.hasClass("kept");
-    socket.emit("replay-keep", { token: localStorage.getItem("userToken"), id: id, keep: keep }, (resp) => {
+    socket.emit("replay-keep", { token: getToken(), id: id, keep: keep }, (resp) => {
       if (resp.error) return alert(resp.error);
       btn.toggleClass("kept", resp.keep).text(resp.keep ? "KEPT ✓" : "KEEP");
     });
@@ -1401,7 +1440,7 @@ $(document).ready(function () {
     showLoad();
     socket.emit(
       "requestRankData",
-      localStorage.getItem("userToken"),
+      getToken(),
       (response) => {
         console.log(response);
         hideLoad();
