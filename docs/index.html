@@ -9,19 +9,29 @@
       href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="style.css?v=1785642545" />
+    <link rel="stylesheet" href="style.css?v=1785657884" />
+    <!-- eddyzow.net account SDK: one sign-in shared by every app on the site.
+         Absolute paths so this resolves from /cubewars/ in production; the
+         site-served copy is authoritative and always wins the cascade.
+         On localhost neither file exists, so the vendored stylesheet below and
+         the fallback in main.js keep the control looking and behaving right.
+         Do not edit ez-auth-button.css — re-copy it from
+         eddyzow.github.io/docs/login/button.css if the standard changes. -->
+    <link rel="stylesheet" href="ez-auth-button.css?v=1785657884" />
+    <link rel="stylesheet" href="/login/button.css" />
+    <script src="/login/auth.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tsparticles@2/tsparticles.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/6.5.10/browser/pixi.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.core.min.js"></script>
     <script src="https://cdn.socket.io/4.8.1/socket.io.js"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="assets/particles.min.js"></script>
-    <script src="arenaEngine.js?v=1785642545"></script>
-    <script src="arenaReplay.js?v=1785642545"></script>
-    <script src="arenaRenderer.js?v=1785642545"></script>
-    <script src="arenaController.js?v=1785642545"></script>
-    <script src="arenaNet.js?v=1785642545"></script>
-    <script src="main.js?v=1785642545" defer></script>
+    <script src="arenaEngine.js?v=1785657884"></script>
+    <script src="arenaReplay.js?v=1785657884"></script>
+    <script src="arenaRenderer.js?v=1785657884"></script>
+    <script src="arenaController.js?v=1785657884"></script>
+    <script src="arenaNet.js?v=1785657884"></script>
+    <script src="main.js?v=1785657884" defer></script>
   </head>
   <body>
     <div id="connection-indicator-wrapper">
@@ -76,70 +86,16 @@
             THE RANKING LADDER!
           </h3>
           <hr />
-          <h2>
-            ENTER A USERNAME TO REGISTER, OR LEAVE BLANK TO PLAY AS A GUEST
-          </h2>
+          <h2>SIGN IN WITH YOUR EDDYZOW.NET ACCOUNT, OR PLAY AS A GUEST</h2>
           <div class="input-container">
-            <input
-              type="text"
-              id="username-input"
-              placeholder="Username (3–20 chars)"
-              minlength="3"
-              maxlength="20"
-              pattern="[a-z0-9_]{3,20}"
-              title="3–20 chars, lowercase letters, numbers, and underscores only"
-            />
-
             <div id="reg1-notice"></div>
-            <div class="button" id="continue-btn">CONTINUE</div>
-            <div class="button button-ghost" id="guest-btn">PLAY AS GUEST</div>
-          </div>
-        </div>
-
-        <div id="register-step3-box" class="box">
-          <p>LOG IN</p>
-          <hr />
-          <h2>
-            LOOKS LIKE YOU HAVE AN ACCOUNT. ENTER YOUR PASSWORD TO LOG IN!
-          </h2>
-          <div class="input-container">
-            <input
-              type="password"
-              id="login-password-input"
-              placeholder="Password (6–20 chars)"
-              minlength="6"
-              maxlength="20"
-            />
-
-            <div id="reg3-notice"></div>
-
-            <div class="button-container">
-              <div class="button" id="back-login">BACK</div>
-              <div class="button" id="login1-btn">LOG IN</div>
-            </div>
-          </div>
-        </div>
-
-        <div id="register-step2-box" class="box">
-          <p>AND SO IT BEGINS...</p>
-          <hr />
-          <h2>ENTER A PASSWORD FOR YOUR NEW ACCOUNT. KEEP IT SAFE!</h2>
-          <div class="input-container">
-            <input
-              type="password"
-              id="password-input"
-              placeholder="Password (6–20 chars)"
-              minlength="6"
-              maxlength="20"
-              pattern="\\S{6,20}"
-              title="6–20 chars, no spaces"
-            />
-
-            <div id="reg2-notice"></div>
-
-            <div class="button-container">
-              <div class="button" id="back-reg1">BACK</div>
-              <div class="button" id="register-btn">REGISTER</div>
+            <!-- Sign-in and guest sit on one row: the primary action leads and
+                 the guest escape hatch sits beside it. The standardized control
+                 renders itself into the mount via EddyAuth.mountButton();
+                 .ez-auth-lg is the SDK's prominent size for sign-in gates. -->
+            <div id="auth-row">
+              <div id="ez-auth-mount" class="ez-auth-lg"></div>
+              <div class="button button-ghost" id="guest-btn">PLAY AS GUEST</div>
             </div>
           </div>
         </div>

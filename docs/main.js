@@ -176,68 +176,105 @@ function generateSalt(length = 16) {
   return salt;
 }
 
-// ---- SESSION STORAGE ----
-// Cube Wars accounts are a separate system from eddyzow.net accounts: different
-// Mongo cluster, different user records. But the game is served from
-// eddyzow.net/cubewars, so it shares an origin — and therefore a localStorage —
-// with every other site app. The eddyzow.net account SDK owns the bare keys
-// "userToken" / "username" / "id" and rewrites them on sign-in and sign-out, so
-// using those same names here meant the two systems silently clobbered each
-// other's sessions. Everything Cube Wars owns is prefixed instead.
-const CW_TOKEN_KEY = "cw_userToken";
-const CW_NAME_KEY = "cw_username";
+// ---- SESSION ----
+// Cube Wars accounts ARE eddyzow.net accounts. The portal at /login is the only
+// page on the site that ever sees a password; it writes the shared session to
+// localStorage (keys "ez.auth" / "userToken" / "username") and every app reads
+// it through the EddyAuth SDK. This file never stores a token of its own.
+//
+// Guest mode stays local to Cube Wars — a guest has no account anywhere — so
+// its one key stays namespaced to avoid colliding with other site apps.
 const CW_GUEST_KEY = "cw_guestName";
 
-// Legacy unprefixed keys. Read once so players already signed in before the
-// rename stay signed in, then removed to stop the collision for good.
-function migrateLegacySession() {
-  const legacyToken = localStorage.getItem("userToken");
-  const legacyName = localStorage.getItem("username");
-  // Only adopt these if they aren't already an eddyzow.net portal session —
-  // that one belongs to a different account system and would fail verification.
-  const portalOwned = !!localStorage.getItem("ez.auth");
-  if (!portalOwned && legacyToken && legacyName && !localStorage.getItem(CW_TOKEN_KEY)) {
-    localStorage.setItem(CW_TOKEN_KEY, legacyToken);
-    localStorage.setItem(CW_NAME_KEY, legacyName);
-    localStorage.removeItem("userToken");
-    localStorage.removeItem("username");
-    localStorage.removeItem("id");
-  }
-  const legacyGuest = localStorage.getItem("guestName");
-  if (legacyGuest && !localStorage.getItem(CW_GUEST_KEY)) {
-    localStorage.setItem(CW_GUEST_KEY, legacyGuest);
-    localStorage.removeItem("guestName");
-  }
+// EddyAuth is loaded from /login/auth.js. On localhost that file isn't served,
+// so fall back to reading the same localStorage contract directly. This keeps
+// local dev working without running the whole eddyzow.net site.
+function ezAuth() {
+  return window.EddyAuth || null;
 }
-migrateLegacySession();
+
+function ezSession() {
+  const A = ezAuth();
+  if (A) return A.user();
+  try {
+    const raw = localStorage.getItem("ez.auth");
+    if (raw) {
+      const p = JSON.parse(raw);
+      if (p && p.token && p.username) return p;
+    }
+  } catch (e) {}
+  const token = localStorage.getItem("userToken");
+  const username = localStorage.getItem("username");
+  return token && username ? { token, username, id: localStorage.getItem("id") } : null;
+}
 
 // Single accessors so no call site touches a raw key name.
 function getToken() {
-  return localStorage.getItem(CW_TOKEN_KEY);
+  const s = ezSession();
+  return s ? s.token : null;
 }
 
 function getDisplayName() {
-  return localStorage.getItem(CW_NAME_KEY) || localStorage.getItem(CW_GUEST_KEY);
+  const s = ezSession();
+  return (s && s.username) || localStorage.getItem(CW_GUEST_KEY);
 }
 
-// Function to store user data in localStorage
-function storeUserData(token, username) {
-  localStorage.setItem(CW_TOKEN_KEY, token);
-  localStorage.setItem(CW_NAME_KEY, username);
-}
-
-// Function to retrieve user data from localStorage
+// Function to retrieve user data — shape kept for existing call sites.
 function getUserData() {
-  const token = localStorage.getItem(CW_TOKEN_KEY);
-  const username = localStorage.getItem(CW_NAME_KEY);
-  return token && username ? { token, username } : null;
+  const s = ezSession();
+  return s && s.token && s.username ? { token: s.token, username: s.username } : null;
 }
 
-// Function to clear user data from localStorage
+// Signing out drops the whole site session, not just Cube Wars. Guest state is
+// Cube Wars' own, so it's cleared here too.
 function clearUserData() {
-  localStorage.removeItem(CW_TOKEN_KEY);
-  localStorage.removeItem(CW_NAME_KEY);
   localStorage.removeItem(CW_GUEST_KEY);
+  const A = ezAuth();
+  if (A) return A.signOut();
+  ["ez.auth", "jsb2.auth", "username", "userToken", "id", "level"].forEach((k) =>
+    localStorage.removeItem(k)
+  );
+}
+
+// Hand off to the portal, returning to this page afterwards.
+function startSignIn(mode) {
+  const A = ezAuth();
+  if (A) return A.signIn({ mode: mode });
+  // Dev fallback: the portal lives on the real site.
+  window.location.href =
+    "https://eddyzow.net/login/?return=" +
+    encodeURIComponent(window.location.href) +
+    (mode === "register" ? "&mode=register" : "");
+}
+
+// Renders the standardized control into #ez-auth-mount. Prefers the SDK so the
+// button matches every other app on the site exactly; on localhost, where
+// /login/auth.js isn't served, emit the SDK's own markup by hand so the styling
+// and behaviour still match what production shows.
+function mountAuthButton() {
+  const node = document.getElementById("ez-auth-mount");
+  if (!node) return;
+
+  const A = ezAuth();
+  if (A) {
+    A.mountButton(node, { showUser: false });
+    return;
+  }
+
+  node.innerHTML =
+    '<button type="button" class="ez-auth-btn">' +
+    '<svg class="ez-auth-icon" viewBox="0 0 24 24" width="14" height="14" ' +
+    'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" ' +
+    'stroke-linejoin="round" aria-hidden="true">' +
+    '<circle cx="7.5" cy="15.5" r="4.5"/>' +
+    '<path d="M10.7 12.3 21 2"/>' +
+    '<path d="M17 6l3 3"/>' +
+    "</svg>" +
+    "<span>Login with eddyzow.net</span>" +
+    "</button>";
+  node.querySelector(".ez-auth-btn").onclick = function () {
+    startSignIn("login");
+  };
 }
 
 // Guest mode: playing without an account. Ranked, replays, and profiles are
@@ -246,23 +283,8 @@ function isGuest() {
   return !getUserData();
 }
 
-// Function to display error messages
-
-// Function to validate email format
-function validateEmail(email) {
-  const re = /\S+@\S+\.\S+/;
-  return re.test(email);
-}
-
-// Function to validate password strength
-function validatePassword(password) {
-  return password.length >= 6 && password.length <= 20;
-}
-
-// Function to validate username
-function validateUsername(username) {
-  return username.length >= 3 && username.length <= 20;
-}
+// Credential validation lived here. The portal owns it now — this app never
+// receives a username or password to check.
 
 // Function to validate token (placeholder for actual validation)
 function isValidToken() {
@@ -291,32 +313,30 @@ function ping() {
   });
 }
 
-// Function to handle user login
-function loginUser(username, password) {
+// Sign-in and registration are the portal's job now — this app never handles a
+// password. The portal returns here and the session is already in localStorage.
+//
+// Greets the server with the portal token so it can create this account's Cube
+// Wars game fields on first contact, then opens the menu.
+function beginSession(onDone) {
+  const token = getToken();
+  if (!token) {
+    if (onDone) onDone(false);
+    return;
+  }
   showLoad();
-  socket.emit("login-user", { username, password }, (response) => {
+  socket.emit("session-hello", token, (resp) => {
     hideLoad();
-    console.log(response);
-    if (response.success) {
-      storeUserData(response.token, username);
-      openGame();
-    } else {
-      $("#reg3-notice").text(response.error);
+    if (!resp || resp.error) {
+      // The session is bad (expired, or the account is gone). Drop it and send
+      // the player back to the portal rather than leaving them half-signed-in.
+      $("#reg1-notice").text((resp && resp.error) || "Could not start session.");
+      clearUserData();
+      showBox("register-box");
+      if (onDone) onDone(false);
+      return;
     }
-  });
-}
-
-// Function to handle user registration
-function registerUser(username, password, email) {
-  showLoad();
-  socket.emit("register-user", { username, password, email }, (response) => {
-    hideLoad();
-    if (response.success) {
-      storeUserData(response.token, username);
-      openGame();
-    } else {
-      $("#reg2-notice").text(response.error);
-    }
+    if (onDone) onDone(true);
   });
 }
 
@@ -383,6 +403,14 @@ $(document).ready(function () {
       showBox("login-box");
       isValidToken(userData.token);
       $("#login-box h1").text(userData.username.toUpperCase());
+      // Coming straight back from the portal — no reason to make them click
+      // "LET'S GO!" on a session they just proved.
+      let fresh = false;
+      try {
+        fresh = sessionStorage.getItem("ez.justSignedIn") === "1";
+        if (fresh) sessionStorage.removeItem("ez.justSignedIn");
+      } catch (e) {}
+      if (fresh) beginSession((ok) => ok && openGame());
     } else {
       showBox("register-box");
     }
@@ -425,11 +453,9 @@ $(document).ready(function () {
     const userData = getUserData();
     if (userData) {
       isValidToken(userData.token);
-      openGame();
+      beginSession((ok) => ok && openGame());
     } else {
-      alert("User session is invalid. Please register or log in again.");
       clearUserData();
-      location.reload();
       hideBox("login-box");
       showBox("register-box");
     }
@@ -1615,19 +1641,6 @@ $(document).ready(function () {
     showBox("register-box");
   });
 
-  document
-    .getElementById("username-input")
-    .addEventListener("input", function (e) {
-      var start = this.selectionStart;
-      var end = this.selectionEnd;
-
-      // Convert text to lowercase
-      this.value = this.value.toLowerCase();
-
-      // Restore the selection range
-      this.setSelectionRange(start, end);
-    });
-
   socket.on("tokenReturn", (data) => {
     console.log(data);
     if (data == "invalid") {
@@ -1635,79 +1648,11 @@ $(document).ready(function () {
     }
   });
 
-  // Handle "CONTINUE" button click in registration
-  $("#continue-btn").on("click", function () {
-    const username = $("#username-input").val().trim();
-    // The register copy promises it: blank username = play as a guest.
-    if (!username) return enterGuestMode();
-    if (!validateUsername(username)) {
-      $("#reg1-notice").text("Username must be between 3 and 20 characters.");
-      return;
-    }
-    $("#reg-notice").text(""); // Replace with custom UI as needed
-    showLoad();
-    socket.emit("check-username", { username }, (response) => {
-      console.log(response);
-      hideLoad();
-
-      if (response.error !== undefined) {
-        $("#reg1-notice").text(response.error);
-        return;
-      }
-
-      if (response.exists) {
-        console.log("Username exists");
-        // Username exists, prompt for password
-        hideBox("register-box");
-        showBox("register-step3-box");
-      } else {
-        // Username does not exist, prompt for registration
-        hideBox("register-box");
-        showBox("register-step2-box");
-        $("#register-btn")
-          .off("click")
-          .on("click", function () {
-            const password = $("#password-input").val();
-            const email = $("#email-input").val();
-            if (!validatePassword(password)) {
-              $("#reg2-notice").text(
-                "Password must be between 6 and 20 characters."
-              );
-              return;
-            }
-            if (email && !validateEmail(email)) {
-              $("#reg2-notice").text("Invalid email format.");
-              return;
-            }
-            registerUser(username, password, email);
-          });
-      }
-    });
-  });
-
-  // Handle "BACK" button click in registration step 2
-  $("#back-reg1").on("click", function () {
-    hideBox("register-step2-box");
-    showBox("register-box");
-  });
-
-  $("#back-login").on("click", function () {
-    hideBox("register-step3-box");
-    showBox("register-box");
-  });
-
-  $("#login1-btn").on("click", function () {
-    const username = $("#username-input").val();
-    const password = $("#login-password-input").val();
-    if (!validatePassword(password)) {
-      $("#reg3-notice").text("Password must be between 6 and 20 characters.");
-      return;
-    }
-    showLoad();
-    console.log(username);
-    console.log(password);
-    loginUser(username, password);
-  });
+  // The standardized "Login with eddyzow.net" control. The SDK renders and
+  // owns it — same markup, icon, and styling as every other app on the site —
+  // so the multi-step username-then-password flow that used to live here is
+  // gone entirely. This app never sees a password.
+  mountAuthButton();
 
   // Handle test write button click
   $("#testWriteButton").on("click", function () {

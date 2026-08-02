@@ -1,0 +1,129 @@
+/* ==========================================================================
+   "Login with eddyzow.net" — the standardized button
+   Copyright 2025+ eddyzow. All rights reserved.
+
+   Dropped into any app, regardless of that app's own design language. Every
+   value is namespaced and self-contained so host stylesheets can't bleed in.
+   Apps that want to restyle it can override the .ez-auth-* classes.
+   ========================================================================== */
+
+.ez-auth-btn,
+.ez-auth-chip {
+  --ez-fg: #f0ede5;
+  --ez-bg: #131313;
+  --ez-line: rgba(240, 237, 229, 0.18);
+  --ez-line-hover: rgba(240, 237, 229, 0.45);
+  --ez-muted: #8a8a8a;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  /* Vertical breathing room so the control never sits flush against
+     whatever the host app puts next to it. */
+  margin: 4px 0;
+  padding: 11px 18px;
+  border: 1px solid var(--ez-line);
+  border-radius: 2px;
+  background: var(--ez-bg);
+  color: var(--ez-fg);
+  font-family: "Atkinson Hyperlegible", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, sans-serif;
+  font-size: 0.85rem;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  /* Explicit properties only — a host's `transition: all` would otherwise
+     animate layout and make the control drift on hover. */
+  transition: border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Light-themed hosts */
+.ez-auth-light .ez-auth-btn,
+.ez-auth-light .ez-auth-chip,
+.theme-light .ez-auth-btn,
+.theme-light .ez-auth-chip {
+  --ez-fg: #0a0a0a;
+  --ez-bg: #efece4;
+  --ez-line: rgba(10, 10, 10, 0.18);
+  --ez-line-hover: rgba(10, 10, 10, 0.5);
+  --ez-muted: #4a4a4a;
+}
+
+/* Hover brightens the edge only — no transform, so the control never shifts
+   position under the cursor. */
+.ez-auth-btn:hover {
+  border-color: var(--ez-line-hover);
+}
+
+.ez-auth-btn:focus-visible,
+.ez-auth-chip-out:focus-visible {
+  outline: 1px solid var(--ez-line-hover);
+  outline-offset: 3px;
+}
+
+/* Icon: a key on the sign-in button, a check once signed in. */
+.ez-auth-icon {
+  flex: 0 0 auto;
+  opacity: 0.75;
+  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ez-auth-btn:hover .ez-auth-icon {
+  opacity: 1;
+}
+
+.ez-auth-icon-ok {
+  color: #4caf6a;
+  opacity: 1;
+}
+
+/* ------------------------------------------------------------ signed-in chip */
+
+.ez-auth-chip {
+  cursor: default;
+  gap: 9px;
+}
+
+.ez-auth-chip-name {
+  font-weight: 700;
+  max-width: 18ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ez-auth-chip-out {
+  margin-left: 2px;
+  padding: 0 0 0 10px;
+  border: none;
+  border-left: 1px solid var(--ez-line);
+  background: none;
+  color: var(--ez-muted);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: color 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ez-auth-chip-out:hover {
+  color: var(--ez-fg);
+}
+
+/* ------------------------------------------------------------------ sizes */
+
+/* For prominent placements — a login modal, an empty-state gate. Put
+   .ez-auth-lg on the container the button is mounted into. */
+.ez-auth-lg .ez-auth-btn,
+.ez-auth-lg .ez-auth-chip {
+  gap: 12px;
+  padding: 16px 30px;
+  font-size: 1rem;
+}
+
+.ez-auth-lg .ez-auth-icon {
+  width: 17px;
+  height: 17px;
+}

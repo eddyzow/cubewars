@@ -2652,6 +2652,45 @@ hr {
   border-color: rgba(255, 209, 102, 0.3);
 }
 
+/* ---------- "Login with eddyzow.net" placement ----------
+   Sign-in and guest share one row. The SDK ships its control as an inline-flex
+   pill sized to its own label and carrying its own vertical margin, so here we
+   only neutralise that margin and let it flex — the SDK keeps ownership of
+   colour, type, border, and icon so the control stays recognisable site-wide.
+   Sign-in is weighted 3:2 over the guest escape hatch beside it. */
+#auth-row {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+}
+
+#ez-auth-mount {
+  display: flex;
+  flex: 3;
+}
+
+#ez-auth-mount .ez-auth-btn {
+  flex: 1;
+  justify-content: center;
+  margin: 0;
+}
+
+#auth-row #guest-btn {
+  flex: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  white-space: nowrap;
+}
+
+/* Narrow screens: one column reads better than two cramped buttons. */
+@media (max-width: 540px) {
+  #auth-row {
+    flex-direction: column;
+  }
+}
+
 /* ---------- QUEUE PAGE (finding match layout) ---------- */
 #tabpage-3 {
   align-items: center;
